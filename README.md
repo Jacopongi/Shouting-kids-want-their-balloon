@@ -1,2 +1,8 @@
-# shouting kids want their balloon
+# Shouting kids want their balloon
  Intelligent Distributed Systems Project 
+
+Authors: Jacopo Endrizzi & Thade Pflunger 
+Course: Intelligent Distributed System
+Professor: Daniele Fontanelli
+Course Year: 2023-2024
+
