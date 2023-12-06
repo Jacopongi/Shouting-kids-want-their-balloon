@@ -3,59 +3,64 @@
 % Initialization and plotting of the kids movement
 
 close all
-clear
+clear all
 clc
 
 %% Model Initialization
 kid.N = 10;                 % Number of kids        
 kid.r = 0.35;               % radius of kids [m]
 %balloon.N = 1;             % Number of balloons => later
-params.roomWidth = 20;      % Size of the room in x-direction [m]
-params.roomLength = 30;     % Size of the room in y-direction [m]
+params.roomWidth = 15;      % Size of the room in x-direction [m]
+params.roomLength = 10;     % Size of the room in y-direction [m]
 
-% random target position for each kid
-kid.Destination = [randi([1 params.roomWidth-1], kid.N, 1), ...
-                   randi([params.roomLength-10 params.roomLength], kid.N, 1)]; 
+%% Random and unique target position for each kid
+% kid.Destination = [randi([1 params.roomWidth-1], kid.N, 1), ...
+%                    randi([params.roomLength-10 params.roomLength], kid.N, 1)]; 
+Destination = [randi([1 params.roomWidth-1], kid.N, 1), ...
+               randi([1 params.roomLength-1], kid.N, 1)]; 
 
-% random starting position for each kid
-StartingPos = [randi([1 params.roomWidth-1], kid.N, 1), ... % all kids start in lower part
-               randi([1 5], kid.N, 1)];    % dimension (kid.N x 2)
-
-kid.Positions = [0 0];
-while ~isequal(size(kid.Positions), size(StartingPos))   
-    % Remove eventual repetitions from array; 'stable' to unselect sorting
-    kid.Positions = unique(StartingPos, 'stable','rows');
-    % insert new rows to reach number N
-    if ~isequal(size(kid.Positions), size(StartingPos))
-        l = length(StartingPos) - length(kid.Positions);
-        kid.Positions = [kid.Positions; randi([1 10], l, 2)];
-    end
+kid.Destination = unique(Destination, 'stable', 'rows');
+while ~isequal(size(kid.Destination), [kid.N,2])
+    kid.Destination = [kid.Destination; randi([1 10], ...
+                            kid.N - length(kid.Destination), 2)];
+    kid.Destination = unique(kid.Destination, 'stable', 'rows');
 end
 
-% Assign a specific velocity to each kid between 0.5 and 2.2 m/s
-kid.DesiredVel = 0.5 + (2.2 - 0.5) * rand(10,1);   % [m/s]
-kid.Velocities = zeros(10,2);    % Only for initial step
+%% Random and unique starting position for each kid
+% StartingPos = [randi([1 params.roomWidth-1], kid.N, 1), ... % all kids start in lower part
+%                randi([1 5], kid.N, 1)];    % dimension (kid.N x 2)
+StartingPos = [randi([1 params.roomWidth-1], kid.N, 1),...    % distributed all over the room
+               randi([1 params.roomLength-1], kid.N, 1)];
+
+kid.Positions = unique(StartingPos, 'stable','rows');
+while ~isequal(size(kid.Positions), [kid.N,2])   
+    kid.Positions = [kid.Positions; randi([1 10], ...
+                            kid.N - length(kid.Positions), 2)];
+    kid.Positions = unique(StartingPos, 'stable','rows');
+end
+
+%% Assign a specific velocity to each kid between 0.5 and 2.2 m/s
+kid.DesiredVel = 0.5 + (2.2 - 0.5) * rand(kid.N,1);   % [m/s]
+kid.Velocities = zeros(kid.N,2);    % Only for initial step
 
 
 
 % Plot initial positions
-figure(12)
-plot(kid.Positions(:,1), kid.Positions(:,2), 'ro'); % Red circles for kids
-hold on;
-axis equal;
-plot(kid.Destination(:,1), kid.Destination(:,2), 'g*')
-axis([1, params.roomWidth, 1, params.roomLength]);
-title('Initial Positions');
-legend('Current Position', 'Target Position','Location', 'best');
-xlabel('Width');
-ylabel('Length');
-hold off;
+% figure(12)
+% plot(kid.Positions(:,1), kid.Positions(:,2), 'ro'); % Red circles for kids
+% hold on;
+% axis equal;
+% plot(kid.Destination(:,1), kid.Destination(:,2), 'g*')
+% axis([1, params.roomWidth, 1, params.roomLength]);
+% title('Initial Positions');
+% legend('Current Position', 'Target Position','Location', 'best');
+% xlabel('Width');
+% ylabel('Length');
+% hold off;
 
-% Solution with ode45, takes ages and only final plot can be seen, not the
-% movement
-% since i changed the desired velocity the plots seem random and the kids
-% don't move towards their destination...
-%[kid.Positions, kid.Velocities] = SFM1(kid, params);
+%% Solution with ode45
+
+[kid.Positions, kid.Velocities] = SFM1(kid, params);
 
 %% Update and plot position according to SFM
 % Number of simulation steps

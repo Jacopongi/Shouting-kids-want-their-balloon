@@ -22,7 +22,7 @@ function [KidPos, KidVel] = SFM1(kid, params)
 initCond = [kid.Velocities(:); kid.Positions(:)];
 
 % Set simulation time
-tSpan = [0, 10];    % for example
+tSpan = [0, 20];    % for example
 
 options = odeset('RelTol', 1e-6, 'AbsTol', 1e-9);
 tic
@@ -38,14 +38,14 @@ KidPos = [KidPosX, KidPosY];
 KidVel = [KidVelX, KidVelY];
 
 % Plot the results
-figure;
+figure(1);
 for i = 1:kid.N
     plot(KidPosX(i,:), KidPosY(i,:), 'DisplayName', ['Kid ', num2str(i)]);
     hold on;    
 end
 axis equal;
-plot(kid.Destination(:,1), kid.Destination(:,2), 'g*')
-plot(kid.Positions(:,1), kid.Positions(:,2), 'ro')
+plot(kid.Destination(:,1), kid.Destination(:,2), 'g*')  % balloons
+plot(kid.Positions(:,1), kid.Positions(:,2), 'ro')      % starting pos
 axis([1, params.roomWidth, 1, params.roomLength]);
 xlabel('X Position');
 ylabel('Y Position');
@@ -53,8 +53,29 @@ ylabel('Y Position');
 title('Shouting kids want their balloon');
 grid on;
 
-% figure
-% plot(t, vel(:,))
+figure(2), clf, hold on
+AL = gobjects(kid.N, 1);
+for i = 1:kid.N
+    AL(i) = animatedline('Color', rand(1, 3));
+end
+axis equal
+axis([1, params.roomWidth, 1, params.roomLength]);
+xlabel('X Position');
+ylabel('Y Position');
+title('Shouting kids want their balloon');
+plot(kid.Destination(:,1), kid.Destination(:,2), 'g*')
+hold on
+for l = 1:length(t)
+    for i = 1:kid.N
+        % Add a point to the animated line for each kid
+        addpoints(AL(i), KidPosX(i, l), KidPosY(i, l));
+    end
+    drawnow;        
+end
+
+
+
+
 end
 
 
