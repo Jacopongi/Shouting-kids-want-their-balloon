@@ -16,23 +16,24 @@ numKid = 10;
 numBal = 10;
 
 % Room features
-RoomWidth = 3000;
-RoomHeight = 4000;
+Room.Width = 3000;
+Room.Height = 4000;
 
 % Random positioning of kids and balloons inside the room
-[KidArray, BalloonArray] = distributeKidBalloon(numKid, numBal, RoomWidth, RoomHeight);
+[KidArray, BalloonArray] = distributeKidBalloon(numKid, numBal, Room);
 
 % Number of sensor
 SensorNum = 9;
 
-SensorsPosition = distributeSensorsOnPerimeter(SensorNum, RoomWidth, RoomHeight);
+SensorsPosition = distributeSensorsOnPerimeter(SensorNum, Room);
 
 
 
+%% Social Force Model
+% Interaction of the kids on their way to teh balloon based on social force
+% model algorithm
 
-
-
-
+[Positions, Velocities] = SFM1(KidArray, BalloonArray, Room);
 
 
 
