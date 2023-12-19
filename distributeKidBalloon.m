@@ -6,8 +6,8 @@ KidArray.ID = 1:numKid;
 BalloonArray.ID = 1:numBal;
 
 % Dimensions 
-KidArray.Radius = 30;
-BalloonArray.Edge = 40;
+KidArray.Radius = 0.3;
+BalloonArray.Edge = 0.4;
 
 % Random starting Positions 
 KidArray.Positions = rand(numKid,2);

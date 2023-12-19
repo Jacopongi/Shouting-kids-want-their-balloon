@@ -1,4 +1,4 @@
-function [KidPos, KidVel] = SFM1(KidArray, BalloonArray, Room)
+function [KidArray] = SFM1(KidArray, BalloonArray, Room, params)
 % Implementation of the Social Force Model according to the paper 
 % "Parameter Calibration of a Social Force Model for the Crowd-Induced 
 % Vibrations of Footbridges" by Elisa Bassoli and Loris Vincenzi
@@ -6,17 +6,41 @@ function [KidPos, KidVel] = SFM1(KidArray, BalloonArray, Room)
 % alpha from the paper becomes k
 % beta from the paper becomes j
     
+
+% Counter for number of function calls during one run (for debugging)
+persistent s 
+if isempty(s)
+    s = 0;
+end
+s = s + 1;
+
 %% Kid movement
+
+if params.Case == 1 
+    % every kid runs to the nearest balloon
+    distances = pdist2(KidArray.Positions, BalloonArray.Positions);
+    [~, indices] = min(distances, [], 2);
+    KidArray.Destinations = BalloonArray.Positions(indices, :);
+
+elseif params.Case == 2
+    % every kid knows which balloon is theirs
+    % !!! here we need to make sure that other balloons are recognized as
+    % obstacles too and thus avoided.
+    KidArray.Destinations = BalloonArray.Positions;
+else
+    %
+end
+
 
 % Combine initial positions and velocities into a single vector
 initCond = [KidArray.ActualVel(:); KidArray.Positions(:)];
 
 % Set simulation time
-tSpan = [0, 600];    % for example
+tSpan = [0, params.t];    % for example
 
-options = odeset('RelTol', 1e-6, 'AbsTol', 1e-9);
+options = odeset('RelTol', 1e-3, 'AbsTol', 1e-4);
 tic
-[t, y] = ode45(@(t,y) socialForceModel(t,y,KidArray,BalloonArray,Room), ...
+[t, y] = ode113(@(t,y) socialForceModel(t,y,KidArray,BalloonArray,Room), ...
                     tSpan, initCond, options);
 toc
 % Extract results
@@ -25,8 +49,8 @@ KidVelY = reshape(y(:,   KidArray.N+1: 2*KidArray.N)', KidArray.N, []);
 KidPosX = reshape(y(:, 2*KidArray.N+1: 3*KidArray.N)', KidArray.N, []);
 KidPosY = reshape(y(:, 3*KidArray.N+1:     end)', KidArray.N, []);
 
-KidPos = [KidPosX, KidPosY];
-KidVel = [KidVelX, KidVelY];
+KidArray.Positions = [KidPosX(:,end), KidPosY(:,end)];
+KidArray.ActualVel = [KidVelX(:,end), KidVelY(:,end)];
 
 % Plot the results
 %{
@@ -100,6 +124,7 @@ end
 %}
 
 % Plot the results
+%{
 figure(3)
 hold on
 axis([1, Room.Width, 1, Room.Height]);
@@ -114,8 +139,9 @@ ylabel('Y Position');
 %legend('show','Position','best');
 title('Shouting kids want their balloon');
 grid on;
+%}
 
-figure(4), clf, hold on
+figure(4), hold on
 AL = gobjects(KidArray.N, 1);
 for i = 1:KidArray.N
     AL(i) = animatedline('Color', KidArray.Color(i,:));
@@ -125,8 +151,19 @@ axis([1, Room.Width, 1, Room.Height]);
 xlabel('X Position');
 ylabel('Y Position');
 title('Shouting kids want their balloon');
-plot(BalloonArray.Positions(:,1), BalloonArray.Positions(:,2), 'g*')
-hold on
+
+if s == 1   % only plot it once at first function call
+    squarefig = zeros(1,BalloonArray.N);
+    for i = 1:BalloonArray.N
+        x_min_b = BalloonArray.Positions(i,1) - 0.5*BalloonArray.Edge; 
+        y_min_b = BalloonArray.Positions(i,2) - 0.5*BalloonArray.Edge;
+        x_max_b = BalloonArray.Edge;
+        y_max_b = BalloonArray.Edge;
+        squarefig(i) = rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], ...
+            'FaceColor', KidArray.Color(i,:));       
+    end
+end
+
 for l = 1:length(t)
     for i = 1:KidArray.N
         % Add a point to the animated line for each kid
@@ -136,7 +173,31 @@ for l = 1:length(t)
 end
 
 
+
+
+%% Writing exchanged messages into logFile for debugging
+% if flag1
+%     fprintf(logFile, "I'm Kid %d, i found balloon %d!\n", asd, asdf);
+%     flag1 = 0;
+% elseif flag2
+%     fprintf(logFile, 'Collecting\n');
+%     flag2 = 0;
+% else
+%     fprintf(logFile, 'Driving\n');
+%     flag3 = 0;
+% end
+% 
+% if norm(GCM - params.Target) < 15
+%     fprintf('Yeah! Target reached')
+%     return
+% end
+
+
+
+
+
 end
+
 
 
 %%
@@ -153,7 +214,7 @@ function dydt = socialForceModel(t, y, KidArray, BalloonArray, Room)
     % from the desired velocity v0 are corrected within the relaxation time
     
     % Desired direction of motion (Equation 5)
-    e_k = normalize(BalloonArray.Positions - pos, 'norm', 2);
+    e_k = normalize(KidArray.Destinations - pos, 'norm', 2);
         % instead of final destination this should be the 'next edge' on an
         % imaginary polygon => how to implement this? is it even necessary?
         % => come back to this for the different cases
@@ -240,7 +301,8 @@ function dydt = socialForceModel(t, y, KidArray, BalloonArray, Room)
     
     
     %% Define the system of ODEs (Equations 1 to 3)     
-    f_k = f_k0 + f_kj + f_kb + f_ka;
+    noise = (2*rand(10,2) - 1)*1e-4;
+    f_k = f_k0 + f_kj + f_kb + f_ka + noise;
 
     %% Combine velocity and position derivatives into a single vector
     dydt = [f_k(:); vel(:)];
