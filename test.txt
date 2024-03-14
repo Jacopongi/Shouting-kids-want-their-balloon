@@ -1,1 +1,24 @@
-added a line
+%% Moving
+
+pkx = KidArray.Positions(:,1);         % Initial kid position
+pky = KidArray.Positions(:,2);
+
+pbx = BalloonArray.Positions(:,1);     % Balloon position
+pby = BalloonArray.Positions(:,2);
+
+plot(pkx,pky,'.r', pbx, pby, '.g')
+axis([0 Room.Width 0 Room.Height])
+hold on
+t = 360*rand(size(pkx));    % initial direction in degree
+for i = 1:50               % number of iterations
+    dx = 10*cosd(t);       % how fast we move
+    dy = 10*sind(t);
+    t = t + 90*(0.5-rand(size(pkx)));    % change direction (-45:45) degree
+    plot([pkx pkx+dx]', [pky pky+dy]')      % plot displacement
+    pkx = pkx + dx;                       % new position
+    pky = pky + dy;
+    h = plot(pkx,pky,'.b');               % plot new position
+    pause(0.2)                          % wait
+    delete(h)                           % remove new position from graph
+end
+hold off
