@@ -15,17 +15,27 @@ numKid = 10;
 % Number of Balloon
 numBal = 10;
 
+%MaxNum = max(numKid, numBal);
+MaxNum = numKid + numBal;
+
 % Room features
-RoomWidth = 3000;
-RoomHeight = 4000;
+Room.Width = MaxNum * 200;
+Room.Height = MaxNum * 150;
 
 % Random positioning of kids and balloons inside the room
-[KidArray, BalloonArray] = distributeKidBalloon(numKid, numBal, RoomWidth, RoomHeight);
+[KidArray, BalloonArray] = distributeKidBalloon(numKid, numBal, Room.Width, Room.Height);
 
 % Number of sensor
-SensorNum = 9;
+Sensor.Num = 7;
 
-SensorsPosition = distributeSensorsOnPerimeter(SensorNum, RoomWidth, RoomHeight);
+Sensor.Position = distributeSensorsOnPerimeter(Sensor.Num, Room.Width, Room.Height, true);
+
+%% Distributed Least Squares Algorithm 
+
+max_SensorNum = 15;
+min_SensorNum = 5;
+
+Sensor = ChooseSensorNumber(min_SensorNum, max_SensorNum, Room);
 
 
 
