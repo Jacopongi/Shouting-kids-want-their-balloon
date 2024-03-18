@@ -20,6 +20,7 @@ BalloonArray.ID = (1:numBal)';
 maxVel = 220;   % [cm/s]    2.2;   % [m/s]
 minVel = 50;    % [cm/s]    0.5;   % [m/s]
 
+
 % Random starting Positions 
 KidArray.Positions = rand(numKid,2);
 KidArray.Destinations = zeros(numKid,2);
