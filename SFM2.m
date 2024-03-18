@@ -1,11 +1,12 @@
-function [KidArray] = SFM1(KidArray, BalloonArray, Room, params)
+function [KidArrSFM] = SFM2(KidArrSFM, BalArrSFM, Room, params)
 % Implementation of the Social Force Model according to the paper 
 % "Parameter Calibration of a Social Force Model for the Crowd-Induced 
 % Vibrations of Footbridges" by Elisa Bassoli and Loris Vincenzi
-
-% alpha from the paper becomes k
-% beta from the paper becomes j
-    
+    % alpha from the paper becomes k
+    % beta from the paper becomes j
+% Return values in KidArrSFM that get updated are:
+    % Positions
+    % ActualVel
 
 % Counter for number of function calls during one run (for debugging)
 persistent s 
@@ -16,41 +17,46 @@ s = s + 1;
 
 %% Kid movement
 
+% Case distinction
 if params.Case == 1 
     % every kid runs to the nearest balloon
-    distances = pdist2(KidArray.Positions, BalloonArray.Positions);
+    distances = pdist2(KidArrSFM.Positions, BalArrSFM.Positions);
     [~, indices] = min(distances, [], 2);
-    KidArray.Destinations = BalloonArray.Positions(indices, :);
+    KidArrSFM.Destinations = BalArrSFM.Positions(indices, :);
 
 elseif params.Case == 2
     % every kid knows which balloon is theirs
     % !!! here we need to make sure that other balloons are recognized as
     % obstacles too and thus avoided.
-    KidArray.Destinations = BalloonArray.Positions;
+    KidArrSFM.Destinations = BalArrSFM.Positions;
 else
-    %
+    % !! find a way to neglect f_k0 in final step. when we dont know the
+    % balloon position
 end
+
+%
 
 
 % Combine initial positions and velocities into a single vector
-initCond = [KidArray.ActualVel(:); KidArray.Positions(:)];
+initCond = [KidArrSFM.ActualVel(:); KidArrSFM.Positions(:)];
 
 % Set simulation time
 tSpan = [0, params.t];    % for example
 
 options = odeset('RelTol', 1e-3, 'AbsTol', 1e-4);
-tic
-[t, y] = ode113(@(t,y) socialForceModel(t,y,KidArray,BalloonArray,Room), ...
+%tic
+[t, y] = ode113(@(t,y) socialForceModel(t,y,KidArrSFM,BalArrSFM,Room), ...
                     tSpan, initCond, options);
-toc
-% Extract results
-KidVelX = reshape(y(:,         1:   KidArray.N)', KidArray.N, []);
-KidVelY = reshape(y(:,   KidArray.N+1: 2*KidArray.N)', KidArray.N, []);
-KidPosX = reshape(y(:, 2*KidArray.N+1: 3*KidArray.N)', KidArray.N, []);
-KidPosY = reshape(y(:, 3*KidArray.N+1:     end)', KidArray.N, []);
+%toc
 
-KidArray.Positions = [KidPosX(:,end), KidPosY(:,end)];
-KidArray.ActualVel = [KidVelX(:,end), KidVelY(:,end)];
+% Extract results
+KidVelX = reshape(y(:,               1:   KidArrSFM.N)', KidArrSFM.N, []);
+KidVelY = reshape(y(:,   KidArrSFM.N+1: 2*KidArrSFM.N)', KidArrSFM.N, []);
+KidPosX = reshape(y(:, 2*KidArrSFM.N+1: 3*KidArrSFM.N)', KidArrSFM.N, []);
+KidPosY = reshape(y(:, 3*KidArrSFM.N+1:           end)', KidArrSFM.N, []);
+
+KidArrSFM.Positions = [KidPosX(:,end), KidPosY(:,end)];
+KidArrSFM.ActualVel = [KidVelX(:,end), KidVelY(:,end)];
 
 % Plot the results
 %{
@@ -141,10 +147,10 @@ title('Shouting kids want their balloon');
 grid on;
 %}
 
-figure(4), hold on
-AL = gobjects(KidArray.N, 1);
-for i = 1:KidArray.N
-    AL(i) = animatedline('Color', KidArray.Color(i,:));
+figure(5), hold on
+AL = gobjects(KidArrSFM.N, 1);
+for i = 1:KidArrSFM.N
+    AL(i) = animatedline('Color', KidArrSFM.Color(i,:));
 end
 axis equal
 axis([1, Room.Width, 1, Room.Height]);
@@ -153,21 +159,24 @@ ylabel('Y Position');
 title('Shouting kids want their balloon');
 
 if s == 1   % only plot it once at first function call
-    squarefig = zeros(1,BalloonArray.N);
-    for i = 1:BalloonArray.N
-        x_min_b = BalloonArray.Positions(i,1) - 0.5*BalloonArray.Edge; 
-        y_min_b = BalloonArray.Positions(i,2) - 0.5*BalloonArray.Edge;
-        x_max_b = BalloonArray.Edge;
-        y_max_b = BalloonArray.Edge;
+    squarefig = zeros(1,BalArrSFM.N);
+    for i = 1:BalArrSFM.N
+        x_min_b = BalArrSFM.Positions(i,1) - 0.5*BalArrSFM.Edge; 
+        y_min_b = BalArrSFM.Positions(i,2) - 0.5*BalArrSFM.Edge;
+        x_max_b = BalArrSFM.Edge;
+        y_max_b = BalArrSFM.Edge;
         squarefig(i) = rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], ...
-            'FaceColor', KidArray.Color(i,:));       
+            'FaceColor', KidArrSFM.Color(i,:));       
     end
 end
 
-for l = 1:length(t)
-    for i = 1:KidArray.N
+l = length(t);
+KidPosX = KidPosX(:, 1:floor(1 + l/100):end);
+KidPosY = KidPosY(:, 1:floor(1 + l/100):end);
+for i = 1:length(KidPosX)
+    for j = 1:KidArrSFM.N
         % Add a point to the animated line for each kid
-        addpoints(AL(i), KidPosX(i, l), KidPosY(i, l));
+        addpoints(AL(j), KidPosX(j, i), KidPosY(j, i));
     end
     drawnow;        
 end
@@ -201,12 +210,12 @@ end
 
 
 %%
-function dydt = socialForceModel(t, y, KidArray, BalloonArray, Room)
+function dydt = socialForceModel(t, y, KidArrSFM, BalArrSFM, Room)
     
 
     % Extract velocities and positions from the state vector
-    vel = reshape(y(1:2*KidArray.N), KidArray.N, []);
-    pos = reshape(y(2*KidArray.N+1:end), KidArray.N, []);
+    vel = reshape(y(1:2*KidArrSFM.N), KidArrSFM.N, []);
+    pos = reshape(y(2*KidArrSFM.N+1:end), KidArrSFM.N, []);
 
     %% Equation 4, Driving term f_k0
     % intention of each kid to walk with a desired speed v_k0 towards its
@@ -214,32 +223,35 @@ function dydt = socialForceModel(t, y, KidArray, BalloonArray, Room)
     % from the desired velocity v0 are corrected within the relaxation time
     
     % Desired direction of motion (Equation 5)
-    e_k = normalize(KidArray.Destinations - pos, 'norm', 2);
+    e_k = normalize((KidArrSFM.Destinations - pos).', 'norm', 2).';
         % instead of final destination this should be the 'next edge' on an
         % imaginary polygon => how to implement this? is it even necessary?
         % => come back to this for the different cases
     
     tau = 0.5;  % relaxation time (see table 1)
-    %v_k = ;% to be obtained from eq 2
-    f_k0 = 1/tau*(KidArray.DesiredVel.*e_k - vel);  
-    
+    epsilon = rand(size(vel))*1e-2;
+    f_k0 = 1/tau*(KidArrSFM.DesiredVel.*e_k - vel + epsilon);  
+   
     
     %% Equation 6, Repulsive force f_kj
+
+    % Add balloons here!!!!!!!!!!!!
+
         
     % describes that the kid k tends to keep a situation-dependent distance
     % from the other kids j
-    f_kj = zeros(KidArray.N,2);
+    f_kj = zeros(KidArrSFM.N,2);
     
     A = 0.5;            % repulsive interaction strength, see table 1
     B = 0.1;            % repulsive interaction range, see table 1
-    r_kj = 2*KidArray.Radius;     % sum of their radii
+    r_kj = 2*KidArrSFM.Radius;     % sum of their radii
     lambda_k = 0.5;     % anisotropic factor, see figure 1
     
-    for k=1:KidArray.N
-        for j=1:KidArray.N
+    for k=1:KidArrSFM.N
+        for j=1:KidArrSFM.N
             if j~=k
                 d_kj = pos(k,:) - pos(j,:);    % distance between CoM
-                n_kj = normalize(d_kj, 'norm', 2);
+                n_kj = normalize(d_kj.', 'norm', 2).';
                 f_kj(k,:) = f_kj(k,:) + A * exp((r_kj - norm(d_kj))/B) * n_kj * ...
                             (lambda_k + (1 - lambda_k)*0.5*(1 - n_kj*e_k(k,:)') + 1);
             end
@@ -252,12 +264,12 @@ function dydt = socialForceModel(t, y, KidArray, BalloonArray, Room)
     % intention to keep a certain distance from borders. The repulsive effect
     % of borders is similar to the repulsion among pedestrians except for the
     % anisotropic behavior.
-    f_kb = zeros(KidArray.N,2);  % force in x and y direction on kid k (Nx2)
+    f_kb = zeros(KidArrSFM.N,2);  % force in x and y direction on kid k (Nx2)
     d_kb = zeros(2);        % initialization, 1 for x, 2 for y
     A = 0.5;                % repulsive interaction strength, see table 1
     B = 0.1;                % repulsive interaction range, see table 1
     
-    for k=1:KidArray.N
+    for k=1:KidArrSFM.N
         
             % simple room with 4 walls => make more general later
             % here it's not yet exactly like in the paper, because the
@@ -269,8 +281,8 @@ function dydt = socialForceModel(t, y, KidArray, BalloonArray, Room)
                              abs(pos(k,2) - 0)]);     % distance in y
     
         for b = 1:2
-            n_kb = normalize(d_kb(b,:), 'norm', 2);
-            f_kb(k,:) = f_kb(k,:) + A*exp((KidArray.Radius - norm(d_kb(b,:)))/B) * n_kb;
+            n_kb = normalize(d_kb(b,:).', 'norm', 2).';
+            f_kb(k,:) = f_kb(k,:) + A*exp((KidArrSFM.Radius - norm(d_kb(b,:)))/B) * n_kb;
            
         end
     end
@@ -281,18 +293,18 @@ function dydt = socialForceModel(t, y, KidArray, BalloonArray, Room)
     % "These attractive forces can be modeled accordingly to the
     % repulsive forces among pedestrians of Eq. 6 with longer
     % interaction range and negative interaction strength."
-    f_ka = zeros(KidArray.N,2);
+    f_ka = zeros(KidArrSFM.N,2);
     
     A = -0.5;        % attractive interaction strength, sign inverted
     B = 0.5;         % repulsive interaction range, >0.1 => modifiy and see what works
-    r_kj = 2*KidArray.Radius;     % sum of their radii
+    r_kj = 2*KidArrSFM.Radius;     % sum of their radii
     lambda_k = 0.5;     % anisotropic factor, see figure 1
     
-    for k=1:KidArray.N
-        for j=1:KidArray.N
+    for k=1:KidArrSFM.N
+        for j=1:KidArrSFM.N
             if j~=k
                 d_kj = pos(k,:) - pos(j,:);    % distance between CoM
-                n_kj = normalize(d_kj, 'norm', 2);
+                n_kj = normalize(d_kj.', 'norm', 2).';
                 f_ka(k,:) = f_ka(k,:) + A * exp((r_kj - norm(d_kj))/B) * n_kj * ...
                             (lambda_k + (1 - lambda_k)*0.5*(1 - n_kj*e_k(k,:)') + 1);
             end
@@ -301,7 +313,7 @@ function dydt = socialForceModel(t, y, KidArray, BalloonArray, Room)
     
     
     %% Define the system of ODEs (Equations 1 to 3)     
-    noise = (2*rand(10,2) - 1)*1e-4;
+    noise = (2*rand(size(KidArrSFM.Positions)) - 1)*1e-2;
     f_k = f_k0 + f_kj + f_kb + f_ka + noise;
 
     %% Combine velocity and position derivatives into a single vector

@@ -2,17 +2,24 @@ function [KidArray, BalloonArray] = distributeKidBalloon(numKid, numBal, RoomWid
 
 KidArray.N = numKid;
 BalloonArray.N = numBal;
-KidArray.ID = 1:numKid;
-BalloonArray.ID = 1:numBal;
 
 % Dimensions 
-KidArray.Radius = 70;
-BalloonArray.Edge = 80;
+KidArray.Radius = 70;   % [cm]  0.7;          % [m]
+BalloonArray.Edge = 35; % [cm]  0.35;       % [m]
 MinimumDistance = KidArray.Radius + BalloonArray.Edge;
 
-% Buonds on velocity
-maxVel = 2.2;
-minVel = 0.5;
+% Field to measure the traveled distance and time it took
+KidArray.PathLength = zeros(numKid, 1);
+KidArray.TravelTime = zeros(numKid, 1);
+
+% ID
+KidArray.ID = (1:numKid)';
+BalloonArray.ID = (1:numBal)';
+
+% Bounds on velocity
+maxVel = 220;   % [cm/s]    2.2;   % [m/s]
+minVel = 50;    % [cm/s]    0.5;   % [m/s]
+
 
 % Random starting Positions 
 KidArray.Positions = rand(numKid,2);
@@ -103,28 +110,24 @@ ylabel('y','FontSize',16)
 title('Kids in the room','FontSize',14)
 
 circlefig = zeros(1,numKid);
-color_Kid = rand(numKid,3);
+KidArray.Color = rand(numKid,3);
 for i = 1:numKid
     x_min = KidArray.Positions(i,1) - KidArray.Radius;
     y_min = KidArray.Positions(i,2) - KidArray.Radius;
     radius_cur = KidArray.Radius;
-    circlefig(i) = rectangle('Position',[x_min,y_min,2*radius_cur,2*radius_cur],'Curvature',[1 1], 'FaceColor',color_Kid(i,:));
+    circlefig(i) = rectangle('Position',[x_min,y_min,2*radius_cur,2*radius_cur],...
+        'Curvature',[1 1], 'FaceColor',KidArray.Color(i,:));
     text(KidArray.Positions(i,1), KidArray.Positions(i,2), num2str(KidArray.ID(i)), 'HorizontalAlignment', 'center', 'Color','k');
 end
 
 squarefig = zeros(1,numBal);
-color_Bal = rand(numBal, 3);
-
-for i = 1:numKid
-    color_Bal(i,:) = color_Kid(i,:);
-end
 
 for i = 1:numBal
     x_min_b = BalloonArray.Positions(i,1) - 0.5*BalloonArray.Edge; 
     y_min_b = BalloonArray.Positions(i,2) - 0.5*BalloonArray.Edge;
     x_max_b = BalloonArray.Edge;
     y_max_b = BalloonArray.Edge;
-    squarefig(i) = rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], 'FaceColor',color_Bal(i,:));
+    squarefig(i) = rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], 'FaceColor',KidArray.Color(i,:));
     text(BalloonArray.Positions(i,1), BalloonArray.Positions(i,2), num2str(BalloonArray.ID(i)), 'HorizontalAlignment', 'center', 'Color','k');
 end
 
