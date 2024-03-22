@@ -11,6 +11,7 @@ MinimumDistance = KidArray.Radius + BalloonArray.Edge;
 % Field to measure the traveled distance and time it took
 KidArray.PathLength = zeros(numKid, 1);
 KidArray.TravelTime = zeros(numKid, 1);
+KidArray.InitPos = zeros(numKid, 1);    % for the plots
 
 % ID
 KidArray.ID = (1:numKid)';
@@ -23,6 +24,7 @@ minVel = 50;    % [cm/s]    0.5;   % [m/s]
 
 % Random starting Positions 
 KidArray.Positions = rand(numKid,2);
+KidArray.InitPos = KidArray.Positions;
 KidArray.Destinations = zeros(numKid,2);
 BalloonArray.Positions = rand(numBal,2);
 

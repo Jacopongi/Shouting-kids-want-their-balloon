@@ -15,27 +15,28 @@ if isempty(s)
 end
 s = s + 1;
 
-%% Kid movement
 
-% Case distinction
-if params.Case == 1 
-    % every kid runs to the nearest balloon
-    distances = pdist2(KidArrSFM.Positions, BalArrSFM.Positions);
-    [~, indices] = min(distances, [], 2);
-    KidArrSFM.Destinations = BalArrSFM.Positions(indices, :);
 
-elseif params.Case == 2
+%% Case distinction
+
+if params.Case == 1
     % every kid knows which balloon is theirs
     % !!! here we need to make sure that other balloons are recognized as
     % obstacles too and thus avoided.
     KidArrSFM.Destinations = BalArrSFM.Positions;
+elseif params.Case == 2 
+    % every kid runs to the nearest balloon
+    distances = pdist2(KidArrSFM.Positions, BalArrSFM.Positions);
+    [~, indices] = min(distances, [], 2);
+    KidArrSFM.Destinations = BalArrSFM.Positions(indices, :);
 else
     % !! find a way to neglect f_k0 in final step. when we dont know the
     % balloon position
 end
 
-%
 
+
+%% Optimization step
 
 % Combine initial positions and velocities into a single vector
 initCond = [KidArrSFM.ActualVel(:); KidArrSFM.Positions(:)];
@@ -58,7 +59,8 @@ KidPosY = reshape(y(:, 3*KidArrSFM.N+1:           end)', KidArrSFM.N, []);
 KidArrSFM.Positions = [KidPosX(:,end), KidPosY(:,end)];
 KidArrSFM.ActualVel = [KidVelX(:,end), KidVelY(:,end)];
 
-% Plot the results
+%% Plot the results
+
 %{
 figure(3);
 for i = 1:KidArray.N
@@ -147,12 +149,8 @@ title('Shouting kids want their balloon');
 grid on;
 %}
 
-figure(5), hold on
-AL = gobjects(KidArrSFM.N, 1);
-for i = 1:KidArrSFM.N
-    AL(i) = animatedline('Color', KidArrSFM.Color(i,:));
-end
-axis equal
+
+figure(5), hold on, axis equal
 axis([1, Room.Width, 1, Room.Height]);
 xlabel('X Position');
 ylabel('Y Position');
@@ -170,17 +168,57 @@ if s == 1   % only plot it once at first function call
     end
 end
 
-l = length(t);
-KidPosX = KidPosX(:, 1:floor(1 + l/100):end);
-KidPosY = KidPosY(:, 1:floor(1 + l/100):end);
-for i = 1:length(KidPosX)
-    for j = 1:KidArrSFM.N
-        % Add a point to the animated line for each kid
-        addpoints(AL(j), KidPosX(j, i), KidPosY(j, i));
-    end
-    drawnow;        
-end
+% determine # of gobjects needed for plot
+%
 
+if KidArrSFM.N < 13     % otherwise too computationally demanding
+    x = ceil(KidArrSFM.N/12);   % maximum 12 each
+    y = mod(KidArrSFM.N, 12);   % # > k*12
+    
+    for i = 1:x   
+        name = "set" + num2str(i); 
+        if i<x
+            AL.(name) = gobjects(12,1);
+            for j = 1:12 
+                AL.(name)(j+12*(i-1)) = ...
+                    animatedline('Color', KidArrSFM.Color(j+12*(i-1),:));
+            end
+    
+        elseif i==x
+            AL.(name) = gobjects(y,1);
+            for j = 1:y 
+                AL.(name)(j) = ...
+                    animatedline('Color', KidArrSFM.Color(j+12*(i-1),:));
+            end
+        end
+    end
+    
+    
+    
+    l = length(t);
+    KidPosX = KidPosX(:, 1:floor(1 + l/100):end);
+    KidPosY = KidPosY(:, 1:floor(1 + l/100):end);
+    for i = 1:length(KidPosX)
+        for j = 1:x     
+            if j<x
+                name = strcat('set', num2str(j));
+                for k = 1:12 
+                    addpoints(AL.(name)(k), KidPosX(k+12*(j-1), i), ...
+                                            KidPosY(k+12*(j-1), i));
+                end                                
+        
+            elseif j==x
+                name = strcat('set', num2str(j));
+                for k = 1:y 
+                    addpoints(AL.(name)(k), KidPosX(k+12*(j-1), i), ...
+                                            KidPosY(k+12*(j-1), i));
+                end
+            end
+        end
+        drawnow;    % limitrate;  % for faster animation
+    end
+end
+%}
 
 
 
