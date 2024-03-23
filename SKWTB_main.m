@@ -19,8 +19,8 @@ numBal = 10;
 MaxNum = numKid + numBal;
 
 % Room features
-Room.Width = MaxNum * 200;  % [cm]  2;    % [m] 
-Room.Height = MaxNum * 150; % [cm]  1.5; 
+Room.Width = MaxNum * 1.5;  % [m]   200;  % [cm]                      
+Room.Height = MaxNum ;      % [m]   150;  % [cm]   
 
 
 % Random positioning of kids and balloons inside the room
