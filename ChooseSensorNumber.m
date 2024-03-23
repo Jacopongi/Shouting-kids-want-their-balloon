@@ -6,7 +6,7 @@ function [Sensor] = ChooseSensorNumber(min_SensorNum,max_SensorNum, Room)
 % Sensor parameters
 Sensor.Res = 1;
 Sensor.Mu = 0;
-Sensor.Sigma = Sensor.Res * rand(1)*10;
+Sensor.Sigma = Sensor.Res * rand(1);
 Sensor.Range = min(Room.Width, Room.Height);
 Sensor.H = eye(2);
     
