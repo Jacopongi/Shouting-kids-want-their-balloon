@@ -1,5 +1,5 @@
-# Shouting kids want their balloon
- Intelligent Distributed Systems Project 
+Shouting kids want their balloon
+Intelligent Distributed Systems Project 
 
 Authors: Jacopo Endrizzi & Thade Pfluger 
 Course: Intelligent Distributed System
