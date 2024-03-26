@@ -1,4 +1,4 @@
-Shouting kids want their balloon
+SHOUTING KIDS WANT THEIR BALLOON
 Intelligent Distributed Systems Project 
 
 Authors: Jacopo Endrizzi & Thade Pfluger 
