@@ -1,9 +1,10 @@
 %% SHOUNTING KIDS WANT THEIR BALLOON
-%  Course:
-%  Professor:
-%  Academic Year:
-%  Student:
-
+%  Course: Intelligent Distributed Systems
+%  Professor: Fontanelli Daniele
+%  Academic Year: 2023-2024
+%  Student: Endrizzi Jacopo  
+%           Pfluger Thade  
+            
 clc
 clear all
 close all
@@ -32,10 +33,14 @@ Sensor.Position = distributeSensorsOnPerimeter(Sensor.Num, Room.Width, Room.Heig
 
 %% Distributed Least Squares Algorithm 
 
-max_SensorNum = 15;
 min_SensorNum = 5;
+max_SensorNum = 15;
 
 Sensor = ChooseSensorNumber(min_SensorNum, max_SensorNum, Room);
+
+KidArray.EstimatedPos = EstimatePosition(KidArray, Sensor, Room);
+%BalloonArray.EstimatedPos = EstimatePosition(BalloonArray, Sensor, Room);
+
 
 
 %% Kids' movement
@@ -87,9 +92,9 @@ while run
 
     
 
-    if any(all(abs(KidArray.Positions - KidArray.Destinations)<[20 20],2))
+    if any(all(abs(KidArray.Positions - KidArray.Destinations)<[0.2 0.2],2))
         [r, ~] = find(all(abs(KidArray.Positions - ...
-                                KidArray.Destinations) < [20 20], 2));
+                                KidArray.Destinations) < [0.2 0.2], 2));
         
         % Execution only when r has changed, r_old is updated after loop
         if length(r) > length(r_old)
