@@ -19,9 +19,8 @@ numBal = 12;
 MaxNum = numKid + numBal;
 
 % Room features
-Room.Width = MaxNum * 200;  % [cm]  2;    % [m] 
-Room.Height = MaxNum * 150; % [cm]  1.5; 
-
+Room.Width = MaxNum * 1.5;  % [m]   200;  % [cm]                      
+Room.Height = MaxNum ;      % [m]   150;  % [cm]  
 
 % Random positioning of kids and balloons inside the room
 [KidArray, BalloonArray] = distributeKidBalloon(numKid, numBal, Room.Width, Room.Height);
@@ -56,7 +55,6 @@ print_flag = 1;
 while run
     
 % TO DO:
-    % change back to [m], not [cm]
     % tidy up the scripts, already better, do some more!
     % implement the cases !!
     % add the numbers from figure 1 also to figure 5
@@ -66,7 +64,7 @@ while run
     [KidArrSFM] = SFM2(KidArrSFM, BalArrSFM, Room, params);
 
 
-    % Save old positions
+    % Save previous positions
     oldPos = KidArray.Positions;
     oldVel = sqrt(sum(KidArray.ActualVel.^2, 2));
     % Update the final KidArray with new values of SFM
@@ -82,34 +80,35 @@ while run
     AvgVel = (oldVel + newVel)/2;
     KidArray.TravelTime = KidArray.TravelTime + deltaDistance./AvgVel;
 
-
-    
-    % !! Units !!
-    arrived = all(abs(KidArrSFM.Positions - KidArrSFM.Destinations)<[20 20],2);
+  
+    arrived = all(abs(KidArrSFM.Positions - KidArrSFM.Destinations)<[0.2 0.2],2);
     if any(arrived)
         % Extract ID of kids that reached their balloon
         ID_KidsArrived = KidArrSFM.ID(arrived);
 
-        % Print output to command window
+        %% Print output to command window
+        % Discern between the cases
         if print_flag
             fprintf("The following kids have reached their balloon: ");
             print_flag = 0;
         end
         fprintf("%d ", ID_KidsArrived');
+
+
         
         
-        % Exclude kids that have arrived from the next optimization step 
+        %% Exclude kids that have arrived from the next optimization step 
         fields = fieldnames(KidArrSFM);
-        r = find(ismember(KidArrSFM.ID,ID_KidsArrived));
-        for i = 6:numel(fields)
-        % start from 6 bc the first five are N, radius, PathLength,
-        % TravelTime, and InitPos --> not of interest in KidArrSFM
+        KidArrSFM.ID_arr = find(ismember(KidArrSFM.ID,ID_KidsArrived));
+        indx_ID = find(strcmp(fields, 'ID'));
+        for i = indx_ID:numel(fields)
+        % start from ID bc all fields before that are of no interest in KidArrSFM
             % Get the matrix from the current field
             originalMatrix = KidArrSFM.(fields{i});
             
             % Delete the arrived kids from all the matrices
             updatedMatrix = originalMatrix;
-            updatedMatrix(r, :) = [];
+            updatedMatrix(KidArrSFM.ID_arr, :) = [];
                         
             % Update the struct with the modified matrix
             KidArrSFM.(fields{i}) = updatedMatrix;
@@ -119,15 +118,16 @@ while run
         % Do the same for the balloons (esp. for their position)
             % --> find shorter more elegant solution later!!
         fields1 = fieldnames(BalArrSFM);
-        r = find(ismember(BalArrSFM.ID,ID_KidsArrived));
-        for i = 3:numel(fields1)
-        % start from 3 bc the first two are N and edge
+        BalArrSFM.ID_arr = find(ismember(BalArrSFM.ID,ID_KidsArrived));
+        indx_ID1 = find(strcmp(fields1, 'ID'));
+        for i = indx_ID1:numel(fields1)
+        % start from ID
             % Get the matrix from the current field
             originalMatrix1 = BalArrSFM.(fields1{i});
             
             % Delete the arrived kids from all the matrices
             updatedMatrix1 = originalMatrix1;
-            updatedMatrix1(r, :) = [];
+            updatedMatrix1(BalArrSFM.ID_arr, :) = [];
 
             % Update the struct with the modified matrix
             BalArrSFM.(fields1{i}) = updatedMatrix1;
@@ -141,6 +141,7 @@ while run
         % Exit loop
         if KidArrSFM.N == 0
             fprintf("\n");
+            disp("-------------------");
             run = 0;
         end
 
@@ -148,13 +149,12 @@ while run
 
 end
 
-
 %% Evaluation of the results
 % Chosen metrics to verify the validity of the social experiment
 %   - travelled path length
 %   - overall travel time 
 %   - 
 
-PlotMetrics(KidArray);
+% PlotMetrics(KidArray);
 
 
