@@ -4,8 +4,9 @@ KidArray.N = numKid;
 BalloonArray.N = numBal;
 
 % Dimensions 
-KidArray.Radius =  0.5;     % [m]           70;   % [cm] 
-BalloonArray.Edge =   0.7; % [m]           35; % [cm]
+KidArray.Radius =   0.5;   % [m] 
+BalloonArray.Edge = 0.7;   % [m]
+
 MinimumDistance = KidArray.Radius + BalloonArray.Edge;
 
 % Additional useful fields
@@ -25,8 +26,10 @@ KidArray.ID = (1:numKid)';
 BalloonArray.ID = (1:numBal)';
 
 % Bounds on velocity
-maxVel = 2.2;   % [m/s]         220;   % [cm/s]
-minVel = 0.5;   % [m/s]         50;    % [cm/s]
+
+maxVel = 2.2;   % [m/s]     
+minVel = 0.5;   % [m/s]   
+
 
 
 % Random starting Positions 
@@ -141,6 +144,7 @@ for i = 1:numBal
         'FaceColor',KidArray.Color(i,:));
     text(BalloonArray.Positions(i,1), BalloonArray.Positions(i,2), num2str(BalloonArray.ID(i)), ...
         'HorizontalAlignment', 'center', 'Color','k', 'FontSize', BalloonArray.Edge*10);
+
 end
 
 

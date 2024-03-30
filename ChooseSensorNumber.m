@@ -1,5 +1,5 @@
 function [Sensor] = ChooseSensorNumber(min_SensorNum,max_SensorNum, Room)
-%UNTITLED2 Summary of this function goes here
+% UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here
 
 
@@ -24,10 +24,10 @@ for sn = min_SensorNum:max_SensorNum
     % Position Measurements
     Env.RefPosition = zeros(1,2);
     Sensor.PosMu = zeros(2,1);
-    Sensor.PosCov = rand(2,2)*0.5;
+    Sensor.PosCov = rand(2,2);
     Sensor.PosCov = Sensor.PosCov'*Sensor.PosCov;
     Sensor.PosMeas = zeros(Sensor.Num, 2);
-    Sensor.Detect = zeros(Sensor.Num,1);
+    Sensor.Detect = zeros(Sensor.Num, 1);
 
     % Reference Positions
     gridnum = 4;
@@ -163,7 +163,7 @@ for sn = min_SensorNum:max_SensorNum
             LegS = {};
             for i=1:Sensor.Num
                 plot(0:Sensor.Cons.MsgNum, StoreEst(i,:,1));
-                LegS{end+1} = ['r_{', num2str(i), '}'];
+                LegS{end+1} = ['sensor_{', num2str(i), '}'];
             end
             plot(0:Sensor.Cons.MsgNum, Env.RefPosition(1)*ones(1,Sensor.Cons.MsgNum+1), 'r--');
             LegS{end+1} = 'Actual Position';
@@ -176,7 +176,7 @@ for sn = min_SensorNum:max_SensorNum
             LegS = {};
             for i=1:Sensor.Num
                 plot(0:Sensor.Cons.MsgNum, StoreEst(i,:,2));
-                LegS{end+1} = ['r_{', num2str(i), '}']; 
+                LegS{end+1} = ['sensor_{', num2str(i), '}']; 
             end
             plot(0:Sensor.Cons.MsgNum, Env.RefPosition(2)*ones(1,Sensor.Cons.MsgNum+1), 'r--');
             LegS{end+1} = 'Actual Position';
@@ -372,8 +372,7 @@ disp(['The maximum error on the y position is: ', num2str(Sensor.MaxErr_y)]);
 
 % Cleaning fields...
 Sensor.Detect = zeros(Sensor.Num,1);
-Sensor.Cons.MsgNum = 0;
-Sensor.PosCov = zeros(2,2);
+Sensor.PosMeas = zeros(Sensor.Num, 2);
 
 % Plot the sensors inside the room
 distributeSensorsOnPerimeter(Sensor.Num, Room.Width, Room.Height, true);

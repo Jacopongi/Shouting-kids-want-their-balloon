@@ -1,8 +1,11 @@
+
 %% SHOUTING KIDS WANT THEIR BALLOON
-%  Course:
-%  Professor:
-%  Academic Year:
-%  Student:
+%  Course:        Intelligent Distributed Systems
+%  Professor:     Fontanelli Daniele
+%  Academic Year: 2023-2024
+%  Students:      Endrizzi Jacopo  
+%                 Pfluger Thade  
+            
 
 clc
 clear all
@@ -19,8 +22,10 @@ numBal = 12;
 MaxNum = numKid + numBal;
 
 % Room features
-Room.Width = MaxNum * 1.5;  % [m]   200;  % [cm]                      
-Room.Height = MaxNum ;      % [m]   150;  % [cm]  
+Room.Width = MaxNum * 1.5;  % [m]                     
+Room.Height = MaxNum ;      % [m]   
+
+
 
 % Random positioning of kids and balloons inside the room
 [KidArray, BalloonArray] = distributeKidBalloon(numKid, numBal, Room.Width, Room.Height);
@@ -31,16 +36,18 @@ Sensor.Position = distributeSensorsOnPerimeter(Sensor.Num, Room.Width, Room.Heig
 
 %% Distributed Least Squares Algorithm 
 
-max_SensorNum = 15;
 min_SensorNum = 5;
+max_SensorNum = 15;
 
 Sensor = ChooseSensorNumber(min_SensorNum, max_SensorNum, Room);
+
+KidArray.EstimatedPos = EstimatePosition(KidArray, Sensor, Room);
+%BalloonArray.EstimatedPos = EstimatePosition(BalloonArray, Sensor, Room);
+
 
 
 %% Kids' movement
 
-% just for now for the first step, otherwise it's all zero
-% KidArray.Destinations = BalloonArray.Positions;
 
 % Second array only for the optimization
 KidArrSFM = KidArray;
@@ -86,6 +93,7 @@ while run
         % Extract ID of kids that reached their balloon
         ID_KidsArrived = KidArrSFM.ID(arrived);
 
+
         %% Print output to command window
         % Discern between the cases
         if print_flag
@@ -94,8 +102,6 @@ while run
         end
         fprintf("%d ", ID_KidsArrived');
 
-
-        
         
         %% Exclude kids that have arrived from the next optimization step 
         fields = fieldnames(KidArrSFM);
