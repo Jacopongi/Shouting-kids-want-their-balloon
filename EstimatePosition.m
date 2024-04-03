@@ -6,7 +6,7 @@ function [EstimatedPos] = EstimatePosition(Array, Sensor, Room)
 EstimatedPos = zeros(Array.N, 2);
 Env.RefPosition = zeros(1,2);
 Env.NoiseCov = diag(rand(2,1));                  % Adding External noise (independent sources affecting each dimension)
-Sensor.PosCov = Sensor.PosCov + Env.NoiseCov;    % Covariance_Total = Covariance_Sensor + Covariance_Noise 
+Sensor.PosCov = Sensor.PosCov ;% + Env.NoiseCov;    % Covariance_Total = Covariance_Sensor + Covariance_Noise 
 Sensor.PosMeas = zeros(Sensor.Num, 2);
 Sensor.Detect = zeros(Sensor.Num, 1);
 
@@ -184,11 +184,11 @@ max_err_y = max(err_y);
 
 disp('-------------------------')
 disp('Errors of Position Estimation')
-disp(['The mean error on x coordinate is: ', num2str(mean_err_x)]);
-disp(['The mean error on y coordinate is: ', num2str(mean_err_y)]);
+disp(['The mean error on x coordinate is: ', num2str(mean_err_x, 3), ' m']);
+disp(['The mean error on y coordinate is: ', num2str(mean_err_y, 3), ' m']);
 
-disp(['The maximum error on x coordinate is: ', num2str(max_err_x)]);
-disp(['The maximum error on y coordinate is: ', num2str(max_err_y)]);
+disp(['The maximum error on x coordinate is: ', num2str(max_err_x, 3), ' m']);
+disp(['The maximum error on y coordinate is: ', num2str(max_err_y, 3), ' m']);
 disp('-------------------------')
 
 
