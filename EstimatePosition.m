@@ -6,7 +6,7 @@ function [EstimatedPos] = EstimatePosition(Array, Sensor, Room)
 EstimatedPos = zeros(Array.N, 2);
 Env.RefPosition = zeros(1,2);
 Env.NoiseCov = diag(rand(2,1));                  % Adding External noise (independent sources affecting each dimension)
-Sensor.PosCov = Sensor.PosCov ;% + Env.NoiseCov;    % Covariance_Total = Covariance_Sensor + Covariance_Noise 
+Sensor.PosCov = Sensor.PosCov + Env.NoiseCov;    % Covariance_Total = Covariance_Sensor + Covariance_Noise 
 Sensor.PosMeas = zeros(Sensor.Num, 2);
 Sensor.Detect = zeros(Sensor.Num, 1);
 
