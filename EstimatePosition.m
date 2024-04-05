@@ -184,11 +184,11 @@ max_err_y = max(err_y);
 
 disp('-------------------------')
 disp('Errors of Position Estimation')
-disp(['The mean error on x coordinate is: ', num2str(mean_err_x)]);
-disp(['The mean error on y coordinate is: ', num2str(mean_err_y)]);
+disp(['The mean error on x coordinate is: ', num2str(mean_err_x, 3), ' m']);
+disp(['The mean error on y coordinate is: ', num2str(mean_err_y, 3), ' m']);
 
-disp(['The maximum error on x coordinate is: ', num2str(max_err_x)]);
-disp(['The maximum error on y coordinate is: ', num2str(max_err_y)]);
+disp(['The maximum error on x coordinate is: ', num2str(max_err_x, 3), ' m']);
+disp(['The maximum error on y coordinate is: ', num2str(max_err_y, 3), ' m']);
 disp('-------------------------')
 
 

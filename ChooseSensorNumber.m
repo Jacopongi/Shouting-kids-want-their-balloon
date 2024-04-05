@@ -284,10 +284,10 @@ for sn = min_SensorNum:max_SensorNum
     % Display informations about errors
     %{
     disp( ['Sensor number: ', num2str(Sensor.Num)]);
-    disp( ['Maximum error on X: ', num2str(max_err_x)] );
-    disp( ['Maximum error on Y: ', num2str(max_err_y)] );    
-    disp( ['Mean error on X: ', num2str(mean_err_x)] );    
-    disp( ['Mean error on Y: ', num2str(mean_err_y)] );
+    disp( ['Maximum error on X: ', num2str(max_err_x, 3), ' m'] );
+    disp( ['Maximum error on Y: ', num2str(max_err_y, 3), ' m'] );    
+    disp( ['Mean error on X: ', num2str(mean_err_x, 3), ' m'] );    
+    disp( ['Mean error on Y: ', num2str(mean_err_y, 3), ' m'] );
     disp(' ');
     %}
         
@@ -367,8 +367,8 @@ Sensor.MaxErr_x = Store.max_err_x(Sensor.Num - min_SensorNum + 1);
 Sensor.MaxErr_y = Store.max_err_y(Sensor.Num - min_SensorNum + 1);
 
 disp(['The chosen number of sensor is: ', num2str(Sensor.Num)]);
-disp(['The maximum error on the x position is: ', num2str(Sensor.MaxErr_x)]);
-disp(['The maximum error on the y position is: ', num2str(Sensor.MaxErr_y)]);
+disp(['The maximum error on the x position is: ', num2str(Sensor.MaxErr_x, 3), ' m']);
+disp(['The maximum error on the y position is: ', num2str(Sensor.MaxErr_y, 3), ' m']);
 
 % Cleaning fields...
 Sensor.Detect = zeros(Sensor.Num,1);
