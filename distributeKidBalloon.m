@@ -13,7 +13,8 @@ MinimumDistance = KidArray.Radius + BalloonArray.Edge;
 % - to measure the traveled distance and time --> evaluation of results
 KidArray.PathLength = zeros(numKid, 1);
 KidArray.TravelTime = zeros(numKid, 1);
-KidArray.InitPos = zeros(numKid, 1);    
+KidArray.InitPos = zeros(numKid, 2); 
+BalloonArray.InitPos = zeros(numBal, 2);
 % - for the plots
 KidArray.circlefig = zeros(1,numKid);
 BalloonArray.squarefig = zeros(1,numBal);
@@ -30,22 +31,23 @@ BalloonArray.ID = (1:numBal)';
 maxVel = 2.2;   % [m/s]     
 minVel = 0.5;   % [m/s]   
 
-
+% Positions estimated by sensors 
+KidArray.EstimatedPos = zeros(numKid,2); 
 
 % Random starting Positions 
-KidArray.Positions = rand(numKid,2);
-KidArray.InitPos = KidArray.Positions;
+KidArray.ActualPos = rand(numKid,2);
 KidArray.Destinations = zeros(numKid,2);
-BalloonArray.Positions = rand(numBal,2);
+BalloonArray.ActualPos = rand(numBal,2);
 
 ScaleFactor = 0.1; % Note! Between 0 and 1!
                    % Needed to avoid generation on the walls
 
-KidArray.Positions(:,1) = ScaleFactor * RoomWidth + KidArray.Positions(:,1) * (1- 2*ScaleFactor) * RoomWidth;
-KidArray.Positions(:,2) = ScaleFactor * RoomHeight + KidArray.Positions(:,2) * (1-2*ScaleFactor) * RoomHeight;
+KidArray.ActualPos(:,1) = ScaleFactor * RoomWidth + KidArray.ActualPos(:,1) * (1- 2*ScaleFactor) * RoomWidth;
+KidArray.ActualPos(:,2) = ScaleFactor * RoomHeight + KidArray.ActualPos(:,2) * (1-2*ScaleFactor) * RoomHeight;
 
-BalloonArray.Positions(:,1) = ScaleFactor * RoomWidth + BalloonArray.Positions(:,1) * (1-2*ScaleFactor) * RoomWidth;
-BalloonArray.Positions(:,2) = ScaleFactor * RoomHeight + BalloonArray.Positions(:,2) * (1-2*ScaleFactor) * RoomHeight;
+BalloonArray.ActualPos(:,1) = ScaleFactor * RoomWidth + BalloonArray.ActualPos(:,1) * (1-2*ScaleFactor) * RoomWidth;
+BalloonArray.ActualPos(:,2) = ScaleFactor * RoomHeight + BalloonArray.ActualPos(:,2) * (1-2*ScaleFactor) * RoomHeight;
+
 
 % Check distance between kids
 OkayDistance = 0;
@@ -61,7 +63,7 @@ while ( OkayDistance == 0 )
                 if i==j
                     continue;
                 end 
-                if ( sqrt( (KidArray.Positions(i,1) - KidArray.Positions(j,1)).^2 + (KidArray.Positions(i,2) - KidArray.Positions(j,2)).^2) < 2*MinimumDistance) 
+                if ( sqrt( (KidArray.ActualPos(i,1) - KidArray.ActualPos(j,1)).^2 + (KidArray.ActualPos(i,2) - KidArray.ActualPos(j,2)).^2) < 2*MinimumDistance) 
                     dist_KidKid = 0;
                     break;
                 end
@@ -74,7 +76,7 @@ while ( OkayDistance == 0 )
                 if i==j
                     continue;
                 end 
-                if ( sqrt( (BalloonArray.Positions(i,1) - BalloonArray.Positions(j,1)).^2 + (BalloonArray.Positions(i,2) - BalloonArray.Positions(j,2)).^2) < 2*MinimumDistance) 
+                if ( sqrt( (BalloonArray.ActualPos(i,1) - BalloonArray.ActualPos(j,1)).^2 + (BalloonArray.ActualPos(i,2) - BalloonArray.ActualPos(j,2)).^2) < 2*MinimumDistance) 
                     dist_BalBal = 0;
                     break;
                 end
@@ -84,7 +86,7 @@ while ( OkayDistance == 0 )
     % Check distance bewteen kids and balloons 
     for i = 1:numKid
             for j = 1:numBal
-                if ( sqrt( (KidArray.Positions(i,1) - BalloonArray.Positions(j,1)).^2 + (KidArray.Positions(i,2) - BalloonArray.Positions(j,2)).^2) < 2*MinimumDistance) 
+                if ( sqrt( (KidArray.ActualPos(i,1) - BalloonArray.ActualPos(j,1)).^2 + (KidArray.ActualPos(i,2) - BalloonArray.ActualPos(j,2)).^2) < 2*MinimumDistance) 
                     dist_KidBal = 0;
                     break;
                 end
@@ -94,19 +96,22 @@ while ( OkayDistance == 0 )
     if (dist_KidKid == 0) || (dist_BalBal == 0) || (dist_KidBal == 0)
 
         % Regenerate positions
-        KidArray.Positions = rand(numKid,2);
-        BalloonArray.Positions = rand(numBal,2);
+        KidArray.ActualPos = rand(numKid,2);
+        BalloonArray.ActualPos = rand(numBal,2);
         
-        KidArray.Positions(:,1) = ScaleFactor * RoomWidth + KidArray.Positions(:,1) * (1-2*ScaleFactor) * RoomWidth;
-        KidArray.Positions(:,2) = ScaleFactor * RoomHeight + KidArray.Positions(:,2) * (1-2*ScaleFactor) * RoomHeight;
+        KidArray.ActualPos(:,1) = ScaleFactor * RoomWidth + KidArray.ActualPos(:,1) * (1-2*ScaleFactor) * RoomWidth;
+        KidArray.ActualPos(:,2) = ScaleFactor * RoomHeight + KidArray.ActualPos(:,2) * (1-2*ScaleFactor) * RoomHeight;
         
-        BalloonArray.Positions(:,1) = ScaleFactor * RoomWidth + BalloonArray.Positions(:,1) * (1-2*ScaleFactor) * RoomWidth;
-        BalloonArray.Positions(:,2) = ScaleFactor * RoomHeight + BalloonArray.Positions(:,2) * (1-2*ScaleFactor) * RoomHeight;
+        BalloonArray.ActualPos(:,1) = ScaleFactor * RoomWidth + BalloonArray.ActualPos(:,1) * (1-2*ScaleFactor) * RoomWidth;
+        BalloonArray.ActualPos(:,2) = ScaleFactor * RoomHeight + BalloonArray.ActualPos(:,2) * (1-2*ScaleFactor) * RoomHeight;
     else 
         OkayDistance = 1;
     end
 end
 
+% Save initial positions
+KidArray.InitPos = KidArray.ActualPos;
+BalloonArray.InitPos = BalloonArray.ActualPos;
 
 % Random x and y velocities
 KidArray.DesiredVel = rand(numKid,1)*(maxVel-minVel) + minVel;
@@ -124,25 +129,25 @@ title('Kids in the room','FontSize',14)
 
 KidArray.Color = rand(numKid,3);
 for i = 1:numKid
-    x_min = KidArray.Positions(i,1) - KidArray.Radius;
-    y_min = KidArray.Positions(i,2) - KidArray.Radius;
+    x_min = KidArray.ActualPos(i,1) - KidArray.Radius;
+    y_min = KidArray.ActualPos(i,2) - KidArray.Radius;
     radius_cur = KidArray.Radius;
     KidArray.circlefig(i) = rectangle('Position',[x_min,y_min,2*radius_cur,2*radius_cur],...
         'Curvature',[1 1], 'FaceColor',KidArray.Color(i,:));
-    text(KidArray.Positions(i,1), KidArray.Positions(i,2), num2str(KidArray.ID(i)), ...
+    text(KidArray.ActualPos(i,1), KidArray.ActualPos(i,2), num2str(KidArray.ID(i)), ...
         'HorizontalAlignment', 'center', 'Color','k', 'FontSize', KidArray.Radius*15);
 end
 
 
 
 for i = 1:numBal
-    x_min_b = BalloonArray.Positions(i,1) - 0.5*BalloonArray.Edge; 
-    y_min_b = BalloonArray.Positions(i,2) - 0.5*BalloonArray.Edge;
+    x_min_b = BalloonArray.ActualPos(i,1) - 0.5*BalloonArray.Edge; 
+    y_min_b = BalloonArray.ActualPos(i,2) - 0.5*BalloonArray.Edge;
     x_max_b = BalloonArray.Edge;
     y_max_b = BalloonArray.Edge;
     BalloonArray.squarefig(i) = rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], ...
         'FaceColor',KidArray.Color(i,:));
-    text(BalloonArray.Positions(i,1), BalloonArray.Positions(i,2), num2str(BalloonArray.ID(i)), ...
+    text(BalloonArray.ActualPos(i,1), BalloonArray.ActualPos(i,2), num2str(BalloonArray.ID(i)), ...
         'HorizontalAlignment', 'center', 'Color','k', 'FontSize', BalloonArray.Edge*10);
 
 end

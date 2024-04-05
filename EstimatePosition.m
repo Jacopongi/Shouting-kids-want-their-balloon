@@ -26,7 +26,7 @@ err_y = zeros(1, length(SetUp.Time)-1);
 % Simulation
 for k=1:length(SetUp.Time)-1
 
-    Env.RefPosition = Array.Positions(k,:);
+    Env.RefPosition = Array.ActualPos(k,:);
     Sensor.Detect = zeros(Sensor.Num,1);
 
     for i = 1:Sensor.Num

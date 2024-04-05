@@ -8,14 +8,13 @@ function [KidArrSFM] = SFM2(KidArrSFM, BalArrSFM, Room, params)
     % Positions
     % ActualVel
 
-% Counter for number of function calls during one run (for debugging)
+
+%% Counter for number of function calls during one run
 persistent s 
 if isempty(s)
     s = 0;
 end
 s = s + 1;
-
-
 
 %% Case distinction
 
@@ -39,16 +38,27 @@ s = s + 1;
     Alternative: they send a message with the balloon number and the corresponding kid is guided to it.
 %}
 
+% !!! => use flags to de-/activate forces for different cases (in params) ???
+
 if params.Case == 1
-    % every kid knows which balloon is theirs
-    % !!! here we need to make sure that other balloons are recognized as
-    % obstacles too and thus avoided.
-    KidArrSFM.Destinations = BalArrSFM.Positions;
+    % Every kid knows which balloon is theirs and runs towards it
+    KidArrSFM.Destinations = BalArrSFM.ActualPos;
+    if params.Subcase == 1
+        % Use absolute positions as reference
+        % Combine initial positions and velocities into a single vector
+        initCond = [KidArrSFM.ActualVel(:); KidArrSFM.ActualPos(:)];
+    elseif params.Subcase == 2
+        % Use estimated positions as reference
+        initCond = [KidArrSFM.ActualVel(:); KidArrSFM.EstimatedPos(:)];        
+    else
+        warning("Enter a valid case")
+    end
+
 elseif params.Case == 2 
     % every kid runs to the nearest balloon
-    distances = pdist2(KidArrSFM.Positions, BalArrSFM.Positions);
+    distances = pdist2(KidArrSFM.ActualPos, BalArrSFM.ActualPos);
     [~, indices] = min(distances, [], 2);
-    KidArrSFM.Destinations = BalArrSFM.Positions(indices, :);
+    KidArrSFM.Destinations = BalArrSFM.ActualPos(indices, :);
 else
     % !! find a way to neglect f_k0 in final step. when we dont know the
     % balloon position
@@ -58,7 +68,8 @@ end
 %% Optimization step
 
 % Combine initial positions and velocities into a single vector
-initCond = [KidArrSFM.ActualVel(:); KidArrSFM.Positions(:)];
+% initCond = [KidArrSFM.ActualVel(:); KidArrSFM.ActualPos(:)];
+    % => those are now defined further up at the case distinction
 
 % Set simulation time
 tSpan = [0, params.t];    % for example
@@ -75,7 +86,7 @@ KidVelY = reshape(y(:,   KidArrSFM.N+1: 2*KidArrSFM.N)', KidArrSFM.N, []);
 KidPosX = reshape(y(:, 2*KidArrSFM.N+1: 3*KidArrSFM.N)', KidArrSFM.N, []);
 KidPosY = reshape(y(:, 3*KidArrSFM.N+1:           end)', KidArrSFM.N, []);
 
-KidArrSFM.Positions = [KidPosX(:,end), KidPosY(:,end)];
+KidArrSFM.ActualPos = [KidPosX(:,end), KidPosY(:,end)];
 KidArrSFM.ActualVel = [KidVelX(:,end), KidVelY(:,end)];
 
 %% Plot the results
@@ -89,118 +100,88 @@ title('Shouting kids want their balloon');
 if s == 1   
     squarefig = zeros(1,BalArrSFM.N);
     for i = 1:BalArrSFM.N
-        x_min_b = BalArrSFM.Positions(i,1) - 0.5*BalArrSFM.Edge; 
-        y_min_b = BalArrSFM.Positions(i,2) - 0.5*BalArrSFM.Edge;
+        x_min_b = BalArrSFM.ActualPos(i,1) - 0.5*BalArrSFM.Edge; 
+        y_min_b = BalArrSFM.ActualPos(i,2) - 0.5*BalArrSFM.Edge;
         x_max_b = BalArrSFM.Edge;
         y_max_b = BalArrSFM.Edge;
         squarefig(i) = rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], ...
             'FaceColor', KidArrSFM.Color(i,:));       
-        text(BalArrSFM.Positions(i,1), BalArrSFM.Positions(i,2), num2str(BalArrSFM.ID(i)), ...
+        text(BalArrSFM.ActualPos(i,1), BalArrSFM.ActualPos(i,2), num2str(BalArrSFM.ID(i)), ...
             'HorizontalAlignment', 'center', 'Color','k', 'FontSize', BalArrSFM.Edge*10);
     end
 
+    for i = 1:KidArrSFM.N        
+    % starting position bigger and with number. Plot only once! BUT:
+    % s=1 is already the first step (actual~=init) => plot both in this 
+    % instance. Not so pretty but vabbè
+    rad = KidArrSFM.Radius;
+    x_min = KidArrSFM.InitPos(i,1) - rad;
+    y_min = KidArrSFM.InitPos(i,2) - rad;
+    KidArrSFM.circlefig(i) = rectangle('Position',[x_min,y_min,2*rad,2*rad],...
+    'Curvature',[1 1], 'FaceColor',KidArrSFM.Color(i,:));
+    text(KidArrSFM.InitPos(i,1), KidArrSFM.InitPos(i,2), num2str(KidArrSFM.ID(i)), ...
+    'HorizontalAlignment', 'center', 'Color','k', 'FontSize', rad*10);
+    end
 end
+
 
 % determine # of gobjects needed for plot
-if KidArrSFM.N < 13     % otherwise too computationally demanding
-    x = ceil(KidArrSFM.N/12);   % maximum 12 each
-    y = mod(KidArrSFM.N, 12);   % # > k*12
-    
-    for i = 1:x   
-        name = "set" + num2str(i); 
-        if i<x
-            AL.(name) = gobjects(12,1);
-            for j = 1:12 
-                AL.(name)(j+12*(i-1)) = ...
-                    animatedline('Color', KidArrSFM.Color(j+12*(i-1),:));
-            end
-    
-        elseif i==x
-            AL.(name) = gobjects(y,1);
-            for j = 1:y 
-                AL.(name)(j) = ...
-                    animatedline('Color', KidArrSFM.Color(j+12*(i-1),:));
-            end
+% if length(KidArrSFM.N) < 13     % otherwise too computationally demanding. If loop added after
+                                % the inside, which should theoretically work for more, was written.
+    m = floor(KidArrSFM.N/12);  % maximum 12 entries per set => m = # full sets (stack of 12)
+    n = mod(KidArrSFM.N, 12);   % # > k*12 (number of kids that exceed a multiple of 12)
+        % keep in mind to dynamically adjust the array size bc kids get
+        % eliminated from the optimization once they reached their balloon
+
+    for i = 1:m   
+        name = strcat('set', num2str(i));     
+        AL.(name) = gobjects(12,1);
+        for j = 1:12 
+            AL.(name)(j) = animatedline('Color', KidArrSFM.Color(j,:));
         end
     end
+    if n~=0
+        name = strcat('set', num2str(m+1)); 
+        AL.(name) = gobjects(n,1);
+        for j = 1:n 
+            AL.(name)(j) = animatedline('Color', KidArrSFM.Color(12*m+j,:));
+        end       
+    end
     
-    
+    % Actually plotting the animated lines
     l = length(t);
-    KidPosX = KidPosX(:, 1:floor(1 + l/100):end);
+    KidPosX = KidPosX(:, 1:floor(1 + l/100):end); % shorten the point array
     KidPosY = KidPosY(:, 1:floor(1 + l/100):end);
+
     for i = 1:length(KidPosX)
-        for j = 1:x     
-            if j<x
-                name = strcat('set', num2str(j));
-                for k = 1:12 
-                    addpoints(AL.(name)(k), KidPosX(k+12*(j-1), i), ...
-                                            KidPosY(k+12*(j-1), i));
-                end                                
-        
-            elseif j==x
-                name = strcat('set', num2str(j));
-                for k = 1:y 
-                    addpoints(AL.(name)(k), KidPosX(k+12*(j-1), i), ...
-                                            KidPosY(k+12*(j-1), i));
-                end
+        for j = 1:m     
+            name = strcat('set', num2str(j));
+            for k = 1:12 
+                addpoints(AL.(name)(k), KidPosX(k,i), KidPosY(k,i));
+            end                                
+        end
+
+        if n~=0
+            name = strcat('set', num2str(m+1));
+            for k = 1:n 
+                addpoints(AL.(name)(k), KidPosX(12*m+k,i), KidPosY(12*m+k,i));
             end
         end
-        drawnow;    % limitrate;  % for faster animation
+        drawnow limitrate;  % for faster animation
+
     end
-end
+% end
 %}
 
-if s > 1
-    % delete circles of kids from previous step to keep plot clean
-    % delete(KidArrSFM.circlefig());
-    % KidArrSFM.circlefig = [];  % Clear the handle variable
-
-    % delete only those that still haven't arrived
-    % --> create field in array that remembers ID's
-    % put it into a struct to keep them over each functioncall
-    % KidArrSFM.ID_arr;
-
-    % In the end i made the intermediate positions' circles smaller and now
-    % the plot looks ok too
-end
 % KidArrSFM.circlefig = zeros(1,KidArrSFM.N);
 for i = 1:KidArrSFM.N    
-    if s == 1
-        % starting position bigger and with number
-        rad = KidArrSFM.Radius;
-        x_min = KidArrSFM.Positions(i,1) - rad;
-        y_min = KidArrSFM.Positions(i,2) - rad;
-        KidArrSFM.circlefig(i) = rectangle('Position',[x_min,y_min,2*rad,2*rad],...
-        'Curvature',[1 1], 'FaceColor',KidArrSFM.Color(i,:));
-        text(KidArrSFM.Positions(i,1), KidArrSFM.Positions(i,2), num2str(KidArrSFM.ID(i)), ...
-        'HorizontalAlignment', 'center', 'Color','k', 'FontSize', rad*15);
-    elseif s > 1
-        % intermediate points smaller and without number
-        rad = KidArrSFM.Radius/3;
-        x_min = KidArrSFM.Positions(i,1) - rad;
-        y_min = KidArrSFM.Positions(i,2) - rad;
-        KidArrSFM.circlefig(i) = rectangle('Position',[x_min,y_min,2*rad,2*rad],...
-        'Curvature',[1 1], 'FaceColor',KidArrSFM.Color(i,:));        
-    end
+    % intermediate points smaller and without number
+    rad = KidArrSFM.Radius/3;
+    x_min = KidArrSFM.ActualPos(i,1) - rad;
+    y_min = KidArrSFM.ActualPos(i,2) - rad;
+    KidArrSFM.circlefig(i) = rectangle('Position',[x_min,y_min,2*rad,2*rad],...
+    'Curvature',[1 1], 'FaceColor',KidArrSFM.Color(i,:));        
 end
-
-
-%% Writing exchanged messages into logFile for debugging
-% if flag1
-%     fprintf(logFile, "I'm Kid %d, i found balloon %d!\n", asd, asdf);
-%     flag1 = 0;
-% elseif flag2
-%     fprintf(logFile, 'Collecting\n');
-%     flag2 = 0;
-% else
-%     fprintf(logFile, 'Driving\n');
-%     flag3 = 0;
-% end
-% 
-% if norm(GCM - params.Target) < 15
-%     fprintf('Yeah! Target reached')
-%     return
-% end
 
 
 
@@ -261,16 +242,16 @@ function dydt = socialForceModel(t, y, KidArrSFM, BalArrSFM, Room)
     % Repulsive term prevents this 'physical constraint'
     f_kx = zeros(KidArrSFM.N,2);
 
-    A = 0.8;            % repulsive interaction strength, similar to paper
+    A = 0.5;            % repulsive interaction strength, similar to paper
     B = 0.1;            % repulsive interaction range, see table 1
     r_kx = KidArrSFM.Radius + BalArrSFM.Edge;     % sum of their radii
     lambda_k = 0.5;     % anisotropic factor, see figure 1
 
     % case 1: kid N belongs to balloon N => 
     for k=1:KidArrSFM.N
-        for x=1:BalArrSFM.N
-            if x~=k
-                d_kx = pos(k,:) - BalArrSFM.Positions(x,:);    % distance between centers
+        for x=1:length(BalArrSFM.InitPos)     % => here we need the unshortened array
+            if x~=KidArrSFM.ID(k)
+                d_kx = pos(k,:) - BalArrSFM.InitPos(x,:);    % distance between centers
                 n_kx = normalize(d_kx.', 'norm', 2).';
                 f_kx(k,:) = f_kx(k,:) + A * exp((r_kx - norm(d_kx))/B) * n_kx * ...
                             (lambda_k + (1 - lambda_k)*0.5*(1 - n_kx*e_k(k,:)') + 1);
@@ -330,8 +311,9 @@ function dydt = socialForceModel(t, y, KidArrSFM, BalArrSFM, Room)
     end
     
     
-    %% Define the system of ODEs (Equations 1 to 3)     
-    noise = (2*rand(size(KidArrSFM.Positions)) - 1)*1e-2;
+    %% Define the system of ODEs (Equations 1 to 3)    
+    % should we actually add the noise here or in teh estimate script??
+    noise = (2*rand(size(KidArrSFM.ActualPos)) - 1)*1e-2;
     f_k = f_k0 + f_kj + f_kx + f_kb + f_ka + noise;
 
     %% Combine velocity and position derivatives into a single vector

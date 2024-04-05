@@ -14,9 +14,9 @@ close all
 %% Parameter initialization
 
 % Number of Kids
-numKid = 12;
+numKid = 16;
 % Number of Balloon
-numBal = 12;
+numBal = 16;
 
 % MaxNum = max(numKid, numBal);
 MaxNum = numKid + numBal;
@@ -31,8 +31,8 @@ Room.Height = MaxNum ;      % [m]
 [KidArray, BalloonArray] = distributeKidBalloon(numKid, numBal, Room.Width, Room.Height);
 
 % Number of sensor
-Sensor.Num = 7;
-Sensor.Position = distributeSensorsOnPerimeter(Sensor.Num, Room.Width, Room.Height, true);
+% Sensor.Num = 7;
+% Sensor.Position = distributeSensorsOnPerimeter(Sensor.Num, Room.Width, Room.Height, true);
 
 %% Distributed Least Squares Algorithm 
 
@@ -48,47 +48,56 @@ KidArray.EstimatedPos = EstimatePosition(KidArray, Sensor, Room);
 
 %% Kids' movement
 
-
-% Second array only for the optimization
+% Use copy of arrays for the optimization
 KidArrSFM = KidArray;
 BalArrSFM = BalloonArray;
 
 % check again what i actually meant with those...
 params.Case = 1;
+params.Subcase = 1;
 params.t = 1.5;
 run = 1;
 print_flag = 1;
 
 while run
     
-% TO DO:
+%% TO DO:
     % tidy up the scripts, already better, do some more!
     % implement the cases !!
-    % add the numbers from figure 1 also to figure 5
     % include the destinations to KidArray again for plot 8
+    % Make sure estimatedPos is inside the while and gets updated at every
+    % step
+    % play with parameters (sim time) a bit
 
 
+    %% Call the Social Force Model
     [KidArrSFM] = SFM2(KidArrSFM, BalArrSFM, Room, params);
 
+    %% Estimate positions of kids with sensors
+    % if params.Case == 1 && params.Subcase == 2
+    %     % in these cases we need estimated positions
+    %     KidArrSFM.EstimatedPos = EstimatePosition(KidArrSFM, Sensor, Room);
+    % end
 
-    % Save previous positions
-    oldPos = KidArray.Positions;
+    %% Save previous positions
+    oldPos = KidArray.ActualPos;
     oldVel = sqrt(sum(KidArray.ActualVel.^2, 2));
     % Update the final KidArray with new values of SFM
     for i = 1:KidArrSFM.N       
         % Update Position and actual velocity
-        KidArray.Positions(KidArrSFM.ID(i),:) = KidArrSFM.Positions(i,:);
+        KidArray.ActualPos(KidArrSFM.ID(i),:) = KidArrSFM.ActualPos(i,:);
         KidArray.ActualVel(KidArrSFM.ID(i),:) = KidArrSFM.ActualVel(i,:);  
     end
     % Estimate total path length and time it took to reach goal
-    deltaDistance = diag(pdist2(KidArray.Positions, oldPos));
+    deltaDistance = diag(pdist2(KidArray.ActualPos, oldPos));
     KidArray.PathLength = KidArray.PathLength + deltaDistance;
     newVel = sqrt(sum(KidArray.ActualVel.^2, 2));
     AvgVel = (oldVel + newVel)/2;
     KidArray.TravelTime = KidArray.TravelTime + deltaDistance./AvgVel;
 
   
-    arrived = all(abs(KidArrSFM.Positions - KidArrSFM.Destinations)<[0.2 0.2],2);
+    %% Check if any kid has reached a balloon
+    arrived = all(abs(KidArrSFM.ActualPos - KidArrSFM.Destinations)<[0.2 0.2],2);
     if any(arrived)
         % Extract ID of kids that reached their balloon
         ID_KidsArrived = KidArrSFM.ID(arrived);
@@ -120,9 +129,7 @@ while run
             KidArrSFM.(fields{i}) = updatedMatrix;
         end
         
-
-        % Do the same for the balloons (esp. for their position)
-            % --> find shorter more elegant solution later!!
+        % Do the same for the balloons
         fields1 = fieldnames(BalArrSFM);
         BalArrSFM.ID_arr = find(ismember(BalArrSFM.ID,ID_KidsArrived));
         indx_ID1 = find(strcmp(fields1, 'ID'));
@@ -144,10 +151,10 @@ while run
         KidArrSFM.N = KidArrSFM.N - length(ID_KidsArrived);
         BalArrSFM.N = BalArrSFM.N - length(ID_KidsArrived);
 
-        % Exit loop
+        %% Condition to exit loop
         if KidArrSFM.N == 0
             fprintf("\n");
-            disp("-------------------");
+            disp("-------------------------");
             run = 0;
         end
 

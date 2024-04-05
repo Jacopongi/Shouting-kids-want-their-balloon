@@ -1,5 +1,5 @@
 function PlotMetrics(KidArray)
-% This function is used to plot the KPI's of the different cases. It will
+% This function is used to plot the KPI's of the different cases to
 % verify the validity of the social experiment.
 % KPI's:
 %   - Time until arrival at destination
@@ -8,7 +8,8 @@ function PlotMetrics(KidArray)
 
 % how to best compare them? What types of statistical analysis?
 % write them in a way that returns the plots of each category for all cases
-
+%   => at the end we could run every case let's say 50 times and make
+%   histograms, bell curves, medians, etc... ??
 %% Prepare data
 x = 1:KidArray.N;
 y1 = KidArray.TravelTime;
