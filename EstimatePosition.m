@@ -182,65 +182,65 @@ mean_err_y = mean(err_y);
 max_err_x = max(err_x);
 max_err_y = max(err_y);
 
-disp('-------------------------')
-disp('Errors of Position Estimation')
-disp(['The mean error on x coordinate is: ', num2str(mean_err_x, 3), ' m']);
-disp(['The mean error on y coordinate is: ', num2str(mean_err_y, 3), ' m']);
+% disp('-------------------------')
+% disp('Errors of Position Estimation')
+% disp(['The mean error on x coordinate is: ', num2str(mean_err_x, 3), ' m']);
+% disp(['The mean error on y coordinate is: ', num2str(mean_err_y, 3), ' m']);
+% 
+% disp(['The maximum error on x coordinate is: ', num2str(max_err_x, 3), ' m']);
+% disp(['The maximum error on y coordinate is: ', num2str(max_err_y, 3), ' m']);
+% disp('-------------------------')
 
-disp(['The maximum error on x coordinate is: ', num2str(max_err_x, 3), ' m']);
-disp(['The maximum error on y coordinate is: ', num2str(max_err_y, 3), ' m']);
-disp('-------------------------')
 
-
-% Plot errors in x-position estimation
-figure;
-box on
-xlabel('x','FontSize',16)
-ylabel('y','FontSize',16)
-title('Error of Position Estimation in X-coordinate','FontSize',14)
-hold on;
-plot(0:length(SetUp.Time)-2,err_x);
-hold off
-
-% Plot errors in y-position estimation
-figure;
-box on
-xlabel('x','FontSize',16)
-ylabel('y','FontSize',16)
-title('Error of Position Estimation in Y-coordinate','FontSize',14)
-hold on;
-plot(0:length(SetUp.Time)-2,err_y);
-hold off
+% % Plot errors in x-position estimation
+% figure;
+% box on
+% xlabel('x','FontSize',16)
+% ylabel('y','FontSize',16)
+% title('Error of Position Estimation in X-coordinate','FontSize',14)
+% hold on;
+% plot(0:length(SetUp.Time)-2,err_x);
+% hold off
+% 
+% % Plot errors in y-position estimation
+% figure;
+% box on
+% xlabel('x','FontSize',16)
+% ylabel('y','FontSize',16)
+% title('Error of Position Estimation in Y-coordinate','FontSize',14)
+% hold on;
+% plot(0:length(SetUp.Time)-2,err_y);
+% hold off
 
 %% Sensors and all positions (actual and estimated ones)
 
-figure;
-axis equal;
-axis([-0.2*Room.Width 1.2*Room.Width -0.2*Room.Height 1.2*Room.Height])
-box on
-xlabel('x','FontSize',16)
-ylabel('y','FontSize',16)
-title('Sensors and Positions','FontSize',14)
-hold on;
-
-rectangle('Position', [0, 0, Room.Width, Room.Height], 'LineWidth', 2);
-
-for k=1:length(SetUp.Time)-1
-
-    Env.RefPosition = UsedPos(k,:);
-    plot(Env.RefPosition(1), Env.RefPosition(2), '+', 'MarkerSize', 10, 'linewidth', 0.5, 'DisplayName','Actual Position');
-    plot(EstimatedPos(k,1), EstimatedPos(k,2), 'x', 'MarkerSize', 10 ,'linewidth', 0.5, 'DisplayName','Estimated Position');
-        
-    for i = 1:Sensor.Num 
-            plot(Sensor.Position(i,1), Sensor.Position(i,2), 'ro', 'MarkerSize', 10, 'MarkerFaceColor', 'r', 'DisplayName','Sensor');
-            legend('AutoUpdate','off')
-            text(Sensor.Position(i,1), Sensor.Position(i,2), num2str(i), 'HorizontalAlignment', 'center');
-    end
-
-    plot([EstimatedPos(k,1), Env.RefPosition(1)], [EstimatedPos(k,2), Env.RefPosition(2)], 'LineStyle','-.');
-end
-
-hold off
+% figure;
+% axis equal;
+% axis([-0.2*Room.Width 1.2*Room.Width -0.2*Room.Height 1.2*Room.Height])
+% box on
+% xlabel('x','FontSize',16)
+% ylabel('y','FontSize',16)
+% title('Sensors and Positions','FontSize',14)
+% hold on;
+% 
+% rectangle('Position', [0, 0, Room.Width, Room.Height], 'LineWidth', 2);
+% 
+% for k=1:length(SetUp.Time)-1
+% 
+%     Env.RefPosition = UsedPos(k,:);
+%     plot(Env.RefPosition(1), Env.RefPosition(2), '+', 'MarkerSize', 10, 'linewidth', 0.5, 'DisplayName','Actual Position');
+%     plot(EstimatedPos(k,1), EstimatedPos(k,2), 'x', 'MarkerSize', 10 ,'linewidth', 0.5, 'DisplayName','Estimated Position');
+% 
+%     for i = 1:Sensor.Num 
+%             plot(Sensor.Position(i,1), Sensor.Position(i,2), 'ro', 'MarkerSize', 10, 'MarkerFaceColor', 'r', 'DisplayName','Sensor');
+%             legend('AutoUpdate','off')
+%             text(Sensor.Position(i,1), Sensor.Position(i,2), num2str(i), 'HorizontalAlignment', 'center');
+%     end
+% 
+%     plot([EstimatedPos(k,1), Env.RefPosition(1)], [EstimatedPos(k,2), Env.RefPosition(2)], 'LineStyle','-.');
+% end
+% 
+% hold off
 
 
 
