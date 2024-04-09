@@ -44,14 +44,12 @@ if params.Case == 1
     % Every kid knows which balloon is theirs and runs towards it
     KidArrSFM.Destinations = BalArrSFM.ActualPos;
     if params.Subcase == 1
-        % Use absolute positions as reference
         % Combine initial positions and velocities into a single vector
+        % Use absolute positions as reference
         initCond = [KidArrSFM.ActualVel(:); KidArrSFM.ActualPos(:)];
     elseif params.Subcase == 2
-        % Use estimated positions as reference
-        initCond = [KidArrSFM.ActualVel(:); KidArrSFM.EstimatedPos(:)];        
-    else
-        warning("Enter a valid case")
+        % Use estimated positions     
+        initCond = [KidArrSFM.ActualVel(:); KidArrSFM.EstimatedPos(:)];
     end
 
 elseif params.Case == 2 
@@ -59,26 +57,26 @@ elseif params.Case == 2
     distances = pdist2(KidArrSFM.ActualPos, BalArrSFM.ActualPos);
     [~, indices] = min(distances, [], 2);
     KidArrSFM.Destinations = BalArrSFM.ActualPos(indices, :);
-else
+elseif params.Case == 3 
     % !! find a way to neglect f_k0 in final step. when we dont know the
     % balloon position
+else
+    warning("Enter a valid case !")
 end
 
 
 %% Optimization step
 
-% Combine initial positions and velocities into a single vector
-% initCond = [KidArrSFM.ActualVel(:); KidArrSFM.ActualPos(:)];
-    % => those are now defined further up at the case distinction
+% Before overwriting the ActualPos save it here in intermediate variable
+PrevActualPos = KidArrSFM.ActualPos;
 
 % Set simulation time
 tSpan = [0, params.t];    % for example
 
 options = odeset('RelTol', 1e-3, 'AbsTol', 1e-4);
 %tic
-[t, y] = ode113(@(t,y) socialForceModel(t,y,KidArrSFM,BalArrSFM,Room), ...
+[t, y] = ode113(@(t,y) socialForceModel(t, y, KidArrSFM, BalArrSFM, Room, params), ...
                     tSpan, initCond, options);
-%toc
 
 % Extract results
 KidVelX = reshape(y(:,               1:   KidArrSFM.N)', KidArrSFM.N, []);
@@ -86,8 +84,50 @@ KidVelY = reshape(y(:,   KidArrSFM.N+1: 2*KidArrSFM.N)', KidArrSFM.N, []);
 KidPosX = reshape(y(:, 2*KidArrSFM.N+1: 3*KidArrSFM.N)', KidArrSFM.N, []);
 KidPosY = reshape(y(:, 3*KidArrSFM.N+1:           end)', KidArrSFM.N, []);
 
-KidArrSFM.ActualPos = [KidPosX(:,end), KidPosY(:,end)];
-KidArrSFM.ActualVel = [KidVelX(:,end), KidVelY(:,end)];
+% Save the last values (end) into the arrays as their new current values
+KidArrSFM.ActualPos = [KidPosX(:,end),  KidPosY(:,end)];
+KidArrSFM.ActualVel = [KidVelX(:,end),  KidVelY(:,end)];
+
+
+% if params.Case == 1 && params.Subcase == 2
+%     [t_e, y_e] = ode113(@(t_e,y_e) socialForceModel(t_e, y_e, ...
+%                     KidArrSFM, BalArrSFM, Room, params), ...
+%                     tSpan, initCond_e, options);
+% 
+%     % Extract results of optimization with estimated positions
+%     KidVelX_e = reshape(y_e(:,               1:   KidArrSFM.N)', KidArrSFM.N, []);
+%     KidVelY_e = reshape(y_e(:,   KidArrSFM.N+1: 2*KidArrSFM.N)', KidArrSFM.N, []);
+%     KidPosX_e = reshape(y_e(:, 2*KidArrSFM.N+1: 3*KidArrSFM.N)', KidArrSFM.N, []);
+%     KidPosY_e = reshape(y_e(:, 3*KidArrSFM.N+1:           end)', KidArrSFM.N, []);
+% 
+%     KidArrSFM.ActualPos_e = [KidPosX_e(:,end), KidPosY_e(:,end)];
+%     KidArrSFM.ActualVel_e = [KidVelX_e(:,end), KidVelY_e(:,end)];
+% end
+%toc
+
+
+
+
+%% Shift the estimated path into the known previous position
+% We start from known initial starting position. Based on its estimate, we
+% obtain the forces and the path. This then needs to be shifted into the
+% known position to obtain our next actual position
+
+if params.Case == 1 && params.Subcase == 2 
+    % The last actual known position is saved in the first two columns of
+    % ActualPos => compute translation in x and y between this and its estimate
+    XY_Distance = PrevActualPos - KidArrSFM.EstimatedPos;
+    
+    % These deviations now need to be applied to all points that create the
+    % paths of all the kids.
+    % The plot is done with animatedline which takes KidPosX and KidPosY
+    % separately => simple shift
+    KidPosX = KidPosX + XY_Distance(:,1);
+    KidPosY = KidPosY + XY_Distance(:,2);
+    
+    % Save new ActualPos to have the correct starting point for the next step
+    KidArrSFM.ActualPos = [KidPosX(:,end),  KidPosY(:,end)];
+end
 
 %% Plot the results
 figure(5), axis equal
@@ -95,6 +135,7 @@ axis([1, Room.Width, 1, Room.Height]);
 xlabel('X Position');
 ylabel('Y Position');
 title('Shouting kids want their balloon');
+subtitle(append('Case: ',num2str(params.Case),'.',num2str(params.Subcase)));
 
 % Plot balloon squares only at first function call
 if s == 1   
@@ -111,16 +152,16 @@ if s == 1
     end
 
     for i = 1:KidArrSFM.N        
-    % starting position bigger and with number. Plot only once! BUT:
-    % s=1 is already the first step (actual~=init) => plot both in this 
-    % instance. Not so pretty but vabbè
-    rad = KidArrSFM.Radius;
-    x_min = KidArrSFM.InitPos(i,1) - rad;
-    y_min = KidArrSFM.InitPos(i,2) - rad;
-    KidArrSFM.circlefig(i) = rectangle('Position',[x_min,y_min,2*rad,2*rad],...
-    'Curvature',[1 1], 'FaceColor',KidArrSFM.Color(i,:));
-    text(KidArrSFM.InitPos(i,1), KidArrSFM.InitPos(i,2), num2str(KidArrSFM.ID(i)), ...
-    'HorizontalAlignment', 'center', 'Color','k', 'FontSize', rad*10);
+        % starting position bigger and with number. Plot only once! BUT:
+        % s=1 is already the first step (actualpos~=initpos) => plot both
+        % in this instance. Not so pretty but vabbè
+        rad = KidArrSFM.Radius;
+        x_min = KidArrSFM.InitPos(i,1) - rad;
+        y_min = KidArrSFM.InitPos(i,2) - rad;
+        KidArrSFM.circlefig(i) = rectangle('Position',[x_min,y_min,2*rad,2*rad],...
+            'Curvature',[1 1], 'FaceColor',KidArrSFM.Color(i,:));
+        text(KidArrSFM.InitPos(i,1), KidArrSFM.InitPos(i,2), num2str(KidArrSFM.ID(i)), ...
+            'HorizontalAlignment', 'center', 'Color','k', 'FontSize', rad*10);
     end
 end
 
@@ -167,7 +208,7 @@ end
                 addpoints(AL.(name)(k), KidPosX(12*m+k,i), KidPosY(12*m+k,i));
             end
         end
-        drawnow limitrate;  % for faster animation
+        drawnow %limitrate;  % for faster animation
 
     end
 % end
@@ -180,7 +221,16 @@ for i = 1:KidArrSFM.N
     x_min = KidArrSFM.ActualPos(i,1) - rad;
     y_min = KidArrSFM.ActualPos(i,2) - rad;
     KidArrSFM.circlefig(i) = rectangle('Position',[x_min,y_min,2*rad,2*rad],...
-    'Curvature',[1 1], 'FaceColor',KidArrSFM.Color(i,:));        
+    'Curvature',[1 1], 'FaceColor',KidArrSFM.Color(i,:));   
+
+    if params.Case == 1 && params.Subcase == 2
+        % plot also the estimated position for better understanding (debugging)
+        % plot(KidArrSFM.EstimatedPos(i,1), KidArrSFM.EstimatedPos(i,2), '')
+        x_e = KidArrSFM.EstimatedPos(i,1) - rad;
+        y_e = KidArrSFM.EstimatedPos(i,2) - rad;
+        rectangle('Position',[x_e,y_e,2*rad,2*rad],...
+        'Curvature',[1 1], 'FaceColor', "#808080", 'LineStyle', ":");   
+    end
 end
 
 
@@ -192,7 +242,7 @@ end
 
 
 %%
-function dydt = socialForceModel(t, y, KidArrSFM, BalArrSFM, Room)
+function dydt = socialForceModel(t, y, KidArrSFM, BalArrSFM, Room, params)
     
 
     % Extract velocities and positions from the state vector
@@ -242,7 +292,7 @@ function dydt = socialForceModel(t, y, KidArrSFM, BalArrSFM, Room)
     % Repulsive term prevents this 'physical constraint'
     f_kx = zeros(KidArrSFM.N,2);
 
-    A = 0.5;            % repulsive interaction strength, similar to paper
+    A = 0.35;            % repulsive interaction strength, similar to paper
     B = 0.1;            % repulsive interaction range, see table 1
     r_kx = KidArrSFM.Radius + BalArrSFM.Edge;     % sum of their radii
     lambda_k = 0.5;     % anisotropic factor, see figure 1

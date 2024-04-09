@@ -14,9 +14,9 @@ close all
 %% Parameter initialization
 
 % Number of Kids
-numKid = 16;
+numKid = 12;
 % Number of Balloon
-numBal = 16;
+numBal = 12;
 
 % MaxNum = max(numKid, numBal);
 MaxNum = numKid + numBal;
@@ -41,6 +41,8 @@ max_SensorNum = 15;
 
 Sensor = ChooseSensorNumber(min_SensorNum, max_SensorNum, Room);
 
+
+% First estimation of the initial starting position
 KidArray.EstimatedPos = EstimatePosition(KidArray, Sensor, Room);
 %BalloonArray.EstimatedPos = EstimatePosition(BalloonArray, Sensor, Room);
 
@@ -52,32 +54,32 @@ KidArray.EstimatedPos = EstimatePosition(KidArray, Sensor, Room);
 KidArrSFM = KidArray;
 BalArrSFM = BalloonArray;
 
-% check again what i actually meant with those...
+% Parameters & flags
 params.Case = 1;
-params.Subcase = 1;
-params.t = 1.5;
+params.Subcase = 2;
+params.t = 1.5  ;
 run = 1;
 print_flag = 1;
 
 while run
     
 %% TO DO:
-    % tidy up the scripts, already better, do some more!
-    % implement the cases !!
-    % include the destinations to KidArray again for plot 8
-    % Make sure estimatedPos is inside the while and gets updated at every
-    % step
-    % play with parameters (sim time) a bit
+    % - tidy up the scripts --> group some special loops into separate functions
+    % - implement the cases !!
+    % - include the destinations to KidArray again for plot 8 (metrics)
+    % - play with parameters (sim time) a bit
 
 
     %% Call the Social Force Model
     [KidArrSFM] = SFM2(KidArrSFM, BalArrSFM, Room, params);
 
     %% Estimate positions of kids with sensors
-    % if params.Case == 1 && params.Subcase == 2
-    %     % in these cases we need estimated positions
-    %     KidArrSFM.EstimatedPos = EstimatePosition(KidArrSFM, Sensor, Room);
-    % end
+    if (params.Case == 1 && params.Subcase == 2) || (params.Case == 2)
+        % The updated positions that we obtain from the SFM are the new
+        % actual positions after we've shifted the initial
+        % in these cases we need to estimate t
+        KidArrSFM.EstimatedPos = EstimatePosition(KidArrSFM, Sensor, Room);
+    end
 
     %% Save previous positions
     oldPos = KidArray.ActualPos;
@@ -97,7 +99,8 @@ while run
 
   
     %% Check if any kid has reached a balloon
-    arrived = all(abs(KidArrSFM.ActualPos - KidArrSFM.Destinations)<[0.2 0.2],2);
+    touch = KidArray.Radius + BalloonArray.Edge/2;
+    arrived = all(abs(KidArrSFM.ActualPos - KidArrSFM.Destinations)<[touch touch],2);
     if any(arrived)
         % Extract ID of kids that reached their balloon
         ID_KidsArrived = KidArrSFM.ID(arrived);
