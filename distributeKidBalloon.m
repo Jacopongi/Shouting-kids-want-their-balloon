@@ -21,6 +21,8 @@ BalloonArray.squarefig = zeros(1,numBal);
 % - remember ID's (row where ID is saved) of kids that have arrived
 KidArray.ID_arr = (1:numKid)';
 BalloonArray.ID_arr = (1:numBal)';
+% - remember which balloons have been visited by each kid (only case 2)
+KidArray.BalVisited = zeros(numKid);
 
 % ID
 KidArray.ID = (1:numKid)';

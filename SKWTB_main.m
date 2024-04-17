@@ -48,19 +48,22 @@ KidArray.EstimatedPos = EstimatePosition(KidArray, Sensor, Room);
 
 
 
-%% Kids' movement
+%% Simulation settings
 
 % Use copy of arrays for the optimization
 KidArrSFM = KidArray;
 BalArrSFM = BalloonArray;
 
 % Parameters & flags
-params.Case = 1;
-params.Subcase = 2;
-params.t = 1.5  ;
+params.Case = 2;
+params.Subcase = 1;
+params.t = 1.5;
+params.flagForce = 0;   % de-/activate the repulsive force of non-targeted balloons
 run = 1;
 print_flag = 1;
 
+
+%% Main section
 while run
     
 %% TO DO:
@@ -105,54 +108,152 @@ while run
         % Extract ID of kids that reached their balloon
         ID_KidsArrived = KidArrSFM.ID(arrived);
 
-
         %% Print output to command window
-        % Discern between the cases
-        if print_flag
-            fprintf("The following kids have reached their balloon: ");
-            print_flag = 0;
+        % Discern between the cases!!
+        if params.Case == 1
+            if print_flag
+                fprintf("The following kids have reached their balloon: ");
+                print_flag = 0;
+            end
+            fprintf("%d ", ID_KidsArrived');
         end
-        fprintf("%d ", ID_KidsArrived');
+
 
         
         %% Exclude kids that have arrived from the next optimization step 
-        fields = fieldnames(KidArrSFM);
-        KidArrSFM.ID_arr = find(ismember(KidArrSFM.ID,ID_KidsArrived));
-        indx_ID = find(strcmp(fields, 'ID'));
-        for i = indx_ID:numel(fields)
-        % start from ID bc all fields before that are of no interest in KidArrSFM
-            % Get the matrix from the current field
-            originalMatrix = KidArrSFM.(fields{i});
+        % Distinguish between cases 1 and 2!
+      
+        if (params.Case == 1)
+            fields = fieldnames(KidArrSFM);
+            KidArrSFM.ID_arr = find(ismember(KidArrSFM.ID,ID_KidsArrived));
+            indx_ID = find(strcmp(fields, 'ID'));
+            for i = indx_ID:numel(fields)
+            % start from ID bc all fields before that are of no interest in KidArrSFM
+                % Get the matrix from the current field
+                originalMatrix = KidArrSFM.(fields{i});
+                
+                % Delete the arrived kids from all the matrices
+                updatedMatrix = originalMatrix;
+                updatedMatrix(KidArrSFM.ID_arr, :) = [];
+                            
+                % Update the struct with the modified matrix
+                KidArrSFM.(fields{i}) = updatedMatrix;
+            end
             
-            % Delete the arrived kids from all the matrices
-            updatedMatrix = originalMatrix;
-            updatedMatrix(KidArrSFM.ID_arr, :) = [];
-                        
-            % Update the struct with the modified matrix
-            KidArrSFM.(fields{i}) = updatedMatrix;
-        end
         
-        % Do the same for the balloons
-        fields1 = fieldnames(BalArrSFM);
-        BalArrSFM.ID_arr = find(ismember(BalArrSFM.ID,ID_KidsArrived));
-        indx_ID1 = find(strcmp(fields1, 'ID'));
-        for i = indx_ID1:numel(fields1)
-        % start from ID
-            % Get the matrix from the current field
-            originalMatrix1 = BalArrSFM.(fields1{i});
-            
-            % Delete the arrived kids from all the matrices
-            updatedMatrix1 = originalMatrix1;
-            updatedMatrix1(BalArrSFM.ID_arr, :) = [];
-
-            % Update the struct with the modified matrix
-            BalArrSFM.(fields1{i}) = updatedMatrix1;
+            % Do the same for the balloons        
+            fields1 = fieldnames(BalArrSFM);
+            BalArrSFM.ID_arr = find(ismember(BalArrSFM.ID,ID_KidsArrived));
+            indx_ID1 = find(strcmp(fields1, 'ID'));
+            for i = indx_ID1:numel(fields1)
+            % start from ID
+                % Get the matrix from the current field
+                originalMatrix1 = BalArrSFM.(fields1{i});
+                
+                % Delete the arrived kids from all the matrices
+                updatedMatrix1 = originalMatrix1;
+                updatedMatrix1(BalArrSFM.ID_arr, :) = [];
+    
+                % Update the struct with the modified matrix
+                BalArrSFM.(fields1{i}) = updatedMatrix1;
+            end
         end
-           
+
+        if (params.Case == 2)
+            % Check if the kids arrived at their correct balloon (same ID)
+            % extract ID's of the closest balloons --> Destinations
+                   
+
+            for h = 1:length(ID_KidsArrived)
+
+                BalPos = BalArrSFM.ActualPos;
+
+                % get row 
+                rowKidID = find(ismember(KidArrSFM.ID, ID_KidsArrived(h), 'rows'));
+                KidDest = KidArrSFM.Destinations(rowKidID,:);                
+                
+                rowBalPos = find(ismember(BalPos, KidDest, 'rows'));
+                ID_Bal2Check = BalArrSFM.ID(rowBalPos);
+                   % !!!! here allowed bc same deletion 
+             
+            
+                if (ID_KidsArrived(h) == ID_Bal2Check)
+
+                    if print_flag
+                        fprintf("The following kids have reached their balloon: ");
+                        print_flag = 0;
+                    end
+                    fprintf("%d ", ID_KidsArrived(h));
+
+
+
+
+                    % Match found --> removal process for both kid X and its
+                    % balloon => same as for case 1
+                    fields = fieldnames(KidArrSFM);
+                    KidArrSFM.ID_arr = find(ismember(KidArrSFM.ID,ID_KidsArrived(h)));
+                    indx_ID = find(strcmp(fields, 'ID'));
+                    for i = indx_ID:numel(fields)
+                    % start from ID bc all fields before that are of no interest in KidArrSFM
+                        % Get the matrix from the current field
+                        originalMatrix = KidArrSFM.(fields{i});
+                        
+                        % Delete the arrived kids from all the matrices
+                        updatedMatrix = originalMatrix;
+                        updatedMatrix(KidArrSFM.ID_arr, :) = [];
+                                    
+                        % Update the struct with the modified matrix
+                        KidArrSFM.(fields{i}) = updatedMatrix;
+                    end
+                                
+                    % Do the same for the balloons        
+                    fields1 = fieldnames(BalArrSFM);
+                    BalArrSFM.ID_arr = find(ismember(BalArrSFM.ID,ID_KidsArrived(h)));
+                    indx_ID1 = find(strcmp(fields1, 'ID'));
+                    for i = indx_ID1:numel(fields1)
+                    % start from ID
+                        % Get the matrix from the current field
+                        originalMatrix1 = BalArrSFM.(fields1{i});
+                        
+                        % Delete the arrived kids from all the matrices
+                        updatedMatrix1 = originalMatrix1;
+                        updatedMatrix1(BalArrSFM.ID_arr, :) = [];
+            
+                        % Update the struct with the modified matrix
+                        BalArrSFM.(fields1{i}) = updatedMatrix1;
+                    end
+    
+                    KidArrSFM.N = KidArrSFM.N - 1;
+            
+
+                else
+                    % let the kid proceed to the next closest balloon
+                    %   - balloon needs to remain untouched
+                    %   - kid needs to stay in the game
+                    %   - BUT: Current destination needs to be excluded
+                    %          from the comparison done in SFM2 --> maybe
+                    %          move it to here??
+
+                    % create a flag to mark wrong match between kid and balloon
+                    % params.flagWrongBal = [params.flagWrongBal, ID_KidsArrived(h)];
+
+                    % Save already visited balloons 
+                    col = find(KidArrSFM.BalVisited(ID_KidsArrived(h), :) == 0, 1);
+                    if isempty(ID_Bal2Check)
+                        ID_Bal2Check = 0;
+                    end
+                    KidArrSFM.BalVisited(ID_KidsArrived(h), col) = ID_Bal2Check;
+                    
+                end
+            end
+        end   
 
         % Update N in KidArrSFM
-        KidArrSFM.N = KidArrSFM.N - length(ID_KidsArrived);
-        BalArrSFM.N = BalArrSFM.N - length(ID_KidsArrived);
+        if (params.Case == 1)
+            KidArrSFM.N = KidArrSFM.N - length(ID_KidsArrived);
+            BalArrSFM.N = BalArrSFM.N - length(ID_KidsArrived);
+        
+        end
 
         %% Condition to exit loop
         if KidArrSFM.N == 0
