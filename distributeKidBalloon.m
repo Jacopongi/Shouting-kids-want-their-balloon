@@ -1,4 +1,8 @@
 function [KidArray, BalloonArray] = distributeKidBalloon(numKid, numBal, RoomWidth, RoomHeight)
+% Summary: random distribution of a set of agents and objectives in a room.
+% Description: after the instation of the main characteristics of agents and objectives,
+% they are randomly distributed in the room paying attention to avoid walls and overlaps. 
+% Plots are available for final visualization.
 
 KidArray.N = numKid;
 BalloonArray.N = numBal;
