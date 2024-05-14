@@ -27,9 +27,9 @@ s = s + 1;
 2)  With sensors, positions of kids and balloons are known. 
     2.1 Kids are guided to closest balloon. Once reached, they verify if it belongs to them.
         If yes, they stop. Otherwise, they proceed to the next closest one.
-    2.2 Alternative: they send a message with the balloon number so the corresponding kid
-        is guided to it.
-	All other kids are pushed away from that balloon (Repulsive force SFM).
+    2.2 Alternative: they send a message with the balloon number so the
+        corresponding kid is guided towards it.
+	    All other kids are pushed away from that balloon (Repulsive force SFM).
 
 3)  With sensors, known positions of kids only.
     Kids wander around. Once they find a balloon, they verify if it belongs to them.
@@ -54,7 +54,7 @@ if params.Case == 1
     end
 
 elseif params.Case == 2 
-    if params.Subcase == 1
+    if (params.Subcase == 1) || (params.Subcase == 2 && s == 1)
 
       % MAKE THIS SECTION MORE UNDERSTANDABLE, IT SEEMS TO WORK BUT IT'S A
       % MESS TO UNDERSTAND WITH ALL THE NESTED COMMANDS !
@@ -84,11 +84,53 @@ elseif params.Case == 2
 
 
     elseif params.Subcase == 2
-        % kids send messages to the others (for now to all others)
+        % kids send messages to the others (as a first step send to all others)
         % => X reaches Y, lets all others know about Y => Y goes to Y, all
         % others ignore/avoid Y
+        
+        % First step is the same: see above
+        
+        % Since we've already set destinations in the main we don't want to
+        % overwrite them now, we just want to add the closest balloon to
+        % those kids that don't have an updated destination
+
+        distances = pdist2(KidArrSFM.ActualPos, BalArrSFM.ActualPos);
+        [~, currentGoal] = min(distances, [], 2);   % currentGoal contains ID!
+
+        for i = 1:KidArrSFM.N   % = only those that are still on the run
+            row_of_ID = find(ismember(KidArrSFM.ID,currentGoal(i)));
+            
+            % if currently targeted balloon has been visited before
+            if ismember(KidArrSFM.ID(row_of_ID),KidArrSFM.BalVisited(KidArrSFM.ID(i),:))
+                % set all visited balloons in distance array to inf, so the
+                % next closest will be chosen as next goal
+                nonzero = find(KidArrSFM.BalVisited(KidArrSFM.ID(i),:)); % find all non zero elements
+                set2inf = find(ismember(KidArrSFM.ID, KidArrSFM.BalVisited(KidArrSFM.ID(i),nonzero)));
+                distances(i, set2inf) = inf;
+                [~, currentGoal(i)] = min(distances(i,:), [], 2);   % determine next closest balloon only for this kid
+        % problem: sometimes first if loop is not entered and second if
+        % loop can't be reached
+        % => base balvisited on the actual pos of balloons and not on
+
+                if (~KidArrSFM.FlagPosReceived(KidArrSFM.ID(i))) || ...
+                   (~ismember(KidArrSFM.Destinations(i,:),BalArrSFM.ActualPos,'rows'))                  
+                    % Next closest balloon is set as the new destination,
+                    % only if the kid has not been communicated the actual
+                    % position of their balloon, or if their current target
+                    % "doesn't exist anymore"/has been found by its
+                    % respective kid
+                    KidArrSFM.Destinations(i,:) = BalArrSFM.ActualPos(currentGoal(i), :);
+                end
+            end
+        end
+        
+        % KidArrSFM.Destinations(find(ismember(KidArrSFM.ID,KidArrSFM.ID_arr)),:) = ...
 
 
+        initCond = [KidArrSFM.ActualVel(:); KidArrSFM.EstimatedPos(:)];
+
+
+        % params.flagForce = 0; % can i do this just for a few balloons??
 
     end
     
@@ -240,13 +282,13 @@ for i = 1:KidArrSFM.N
     KidArrSFM.circlefig(i) = rectangle('Position',[x_min,y_min,2*rad,2*rad],...
     'Curvature',[1 1], 'FaceColor',KidArrSFM.Color(i,:));   
 
-    % if (params.Case == 1 && params.Subcase == 2) || (params.Case == 2)
-    %     % plot also the estimated position for better understanding (debugging)
-    %     x_e = KidArrSFM.EstimatedPos(i,1) - rad;
-    %     y_e = KidArrSFM.EstimatedPos(i,2) - rad;
-    %     rectangle('Position',[x_e,y_e,2*rad,2*rad],...
-    %     'Curvature',[1 1], 'FaceColor', "#808080", 'LineStyle', ":");   
-    % end
+    if (params.Case == 1 && params.Subcase == 2) || (params.Case == 2)
+        % plot also the estimated position for better understanding (debugging)
+        x_e = KidArrSFM.EstimatedPos(i,1) - rad;
+        y_e = KidArrSFM.EstimatedPos(i,2) - rad;
+        rectangle('Position',[x_e,y_e,2*rad,2*rad],...
+        'Curvature',[1 1], 'FaceColor', "#808080", 'LineStyle', ":");   
+    end
 end
 
 
@@ -307,7 +349,7 @@ function dydt = socialForceModel(t, y, KidArrSFM, BalArrSFM, Room, params)
     % prevents that kids k cross/run over a balloon x which is not its target.
     % Repulsive term prevents this 'physical constraint'
     f_kx = zeros(KidArrSFM.N,2);
-    
+
     if params.flagForce        
         A = 0.35;            % repulsive interaction strength, similar to paper
         B = 0.1;            % repulsive interaction range, see table 1
