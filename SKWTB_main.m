@@ -28,7 +28,7 @@ Room.Height = MaxNum ;      % [m]
 
 
 % Random positioning of kids and balloons inside the room
-[KidArray, BalloonArray] = distributeKidBalloon(numKid, numBal, Room.Width, Room.Height);
+[KidArray, BalloonArray] = distributeKidBalloon(numKid, numBal, Room.Width, Room.Height, 1);
 
 % Number of sensor
 % Sensor.Num = 7;

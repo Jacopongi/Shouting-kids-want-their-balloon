@@ -1,9 +1,11 @@
 function [KidArrSFM] = SFM2(KidArrSFM, BalArrSFM, Room, params)
-% Implementation of the Social Force Model according to the paper 
-% "Parameter Calibration of a Social Force Model for the Crowd-Induced 
-% Vibrations of Footbridges" by Elisa Bassoli and Loris Vincenzi
-    % alpha from the paper becomes k
-    % beta from the paper becomes j
+% Summary: Social Force Model and different cases of analysis
+% Description: implementation of the Social Force Model according to the paper 
+% "Parameter Calibration of a Social Force Model for the Crowd-Induced Vibrations of Footbridges" 
+% by Elisa Bassoli and Loris Vincenzi
+    % NOTE: alpha from the paper becomes k
+    %       beta from the paper becomes j
+
 % Return values in KidArrSFM that get updated are:
     % Positions
     % ActualVel

@@ -1,6 +1,12 @@
 function [Sensor] = ChooseSensorNumber(min_SensorNum,max_SensorNum, Room)
-% UNTITLED2 Summary of this function goes here
-%   Detailed explanation goes here
+% Summary: compute the optimal number of sensors that minimizes the error in position estimation. 
+% Description: Position estimation is performed on fixed reference positions. 
+% Estimates are shared to all sensors with a consensus algorithm exploiting Metropolis-Hastings weighting. 
+% Error is computed as the difference between estimates and actual positions.
+% Given a set of possible sensor numbers, performances are compared to guarantee the minimum error.
+
+% NOTE: Several plots are available (consensus algorithm results, sensors actively measuring the position, error plots).
+% They are left commentented to avoid extensive generation of images. 
 
 
 % Sensor parameters
