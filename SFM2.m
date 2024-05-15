@@ -94,24 +94,52 @@ elseif params.Case == 2
         % overwrite them now, we just want to add the closest balloon to
         % those kids that don't have an updated destination
 
-        distances = pdist2(KidArrSFM.ActualPos, BalArrSFM.ActualPos);
-        [~, currentGoal] = min(distances, [], 2);   % currentGoal contains ID!
-
-        for i = 1:KidArrSFM.N   % = only those that are still on the run
-            row_of_ID = find(ismember(KidArrSFM.ID,currentGoal(i)));
-            
-            % if currently targeted balloon has been visited before
-            if ismember(KidArrSFM.ID(row_of_ID),KidArrSFM.BalVisited(KidArrSFM.ID(i),:))
+        % distances = pdist2(KidArrSFM.ActualPos, BalArrSFM.ActualPos); % InitPos
+        % [~, currentGoal] = min(distances, [], 2);   % currentGoal contains ID!
+        % 
+        % for i = 1:KidArrSFM.N   % = only those that are still on the run
+        %     row_of_ID = find(ismember(KidArrSFM.ID,currentGoal(i))); % wos is der sinn von dera zeile gwesn?
+        %                 % i moan dass i do davo ausganga bin dass
+        % 
+        %     % if currently targeted balloon has been visited before
+        %     if ismember(KidArrSFM.ID(row_of_ID),KidArrSFM.BalVisited(KidArrSFM.ID(i),:))
                 % set all visited balloons in distance array to inf, so the
                 % next closest will be chosen as next goal
+        %         nonzero = find(KidArrSFM.BalVisited(KidArrSFM.ID(i),:)); % find all non zero elements
+        %         set2inf = find(ismember(KidArrSFM.ID, KidArrSFM.BalVisited(KidArrSFM.ID(i),nonzero)));
+        %         distances(i, set2inf) = inf;
+        %         [~, currentGoal(i)] = min(distances(i,:), [], 2);   % determine next closest balloon only for this kid
+        % % problem: sometimes first if loop is not entered and second if
+        % % loop can't be reached
+        % % => base balvisited on the actual pos of balloons and not on
+        % 
+        %         if (~KidArrSFM.FlagPosReceived(KidArrSFM.ID(i))) || ...
+        %            (~ismember(KidArrSFM.Destinations(i,:),BalArrSFM.ActualPos,'rows'))                  
+        %             % Next closest balloon is set as the new destination,
+        %             % only if the kid has not been communicated the actual
+        %             % position of their balloon, or if their current target
+        %             % "doesn't exist anymore"/has been found by its
+        %             % respective kid
+        %             KidArrSFM.Destinations(i,:) = BalArrSFM.ActualPos(currentGoal(i), :);
+        %         end
+        %     end
+        % end
+
+        % second try => seems to work
+        distances = pdist2(KidArrSFM.ActualPos, BalArrSFM.InitPos); % InitPos
+        [~, currentGoal] = min(distances, [], 2);   % currentGoal contains Bal-ID!
+
+        for i = 1:KidArrSFM.N   % = only those that are still on the run
+                       
+            % check if currently targeted balloon has been visited before
+            if ismember(currentGoal(i),KidArrSFM.BalVisited(KidArrSFM.ID(i),:))
+                % set all visited balloons in distance array to infinity,
+                % so the next closest will be chosen as next goal
                 nonzero = find(KidArrSFM.BalVisited(KidArrSFM.ID(i),:)); % find all non zero elements
-                set2inf = find(ismember(KidArrSFM.ID, KidArrSFM.BalVisited(KidArrSFM.ID(i),nonzero)));
+                set2inf = KidArrSFM.BalVisited(KidArrSFM.ID(i),nonzero);
                 distances(i, set2inf) = inf;
                 [~, currentGoal(i)] = min(distances(i,:), [], 2);   % determine next closest balloon only for this kid
-        % problem: sometimes first if loop is not entered and second if
-        % loop can't be reached
-        % => base balvisited on the actual pos of balloons and not on
-
+        
                 if (~KidArrSFM.FlagPosReceived(KidArrSFM.ID(i))) || ...
                    (~ismember(KidArrSFM.Destinations(i,:),BalArrSFM.ActualPos,'rows'))                  
                     % Next closest balloon is set as the new destination,
@@ -119,7 +147,7 @@ elseif params.Case == 2
                     % position of their balloon, or if their current target
                     % "doesn't exist anymore"/has been found by its
                     % respective kid
-                    KidArrSFM.Destinations(i,:) = BalArrSFM.ActualPos(currentGoal(i), :);
+                    KidArrSFM.Destinations(i,:) = BalArrSFM.InitPos(currentGoal(i), :);
                 end
             end
         end

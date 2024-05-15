@@ -14,9 +14,9 @@ close all
 %% Parameter initialization
 
 % Number of Kids
-numKid = 8;
+numKid = 14;
 % Number of Balloon
-numBal = 8;
+numBal = 14;
 
 % MaxNum = max(numKid, numBal);
 MaxNum = numKid + numBal;
@@ -227,6 +227,16 @@ while run
                     end
     
                     KidArrSFM.N = KidArrSFM.N - 1;
+
+                    % Put it also in the BalVisited matrix
+                    for i = 1:length(KidArrSFM.BalVisited)
+                        col = find(KidArrSFM.BalVisited(i, :) == 0, 1);
+                        row = find(ismember(KidArrSFM.ID,i));
+                        if ~ismember(ID_Bal2Check,KidArrSFM.BalVisited(KidArrSFM.ID(row),:))
+                            KidArrSFM.BalVisited(i, col) = ID_Bal2Check;
+                        end
+                        
+                    end
             
 
                 else 
@@ -316,7 +326,7 @@ end
 
 %% Evaluation of the results
 % Chosen metrics to verify the validity of the social experiment
-%   - travelled path length
+%   - traveled path length
 %   - overall travel time 
 %   - 
 
