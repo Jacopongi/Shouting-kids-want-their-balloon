@@ -14,9 +14,9 @@ close all
 %% Parameter initialization
 
 % Number of Kids
-numKid = 14;
+numKid = 10;
 % Number of Balloon
-numBal = 14;
+numBal = 10;
 
 % MaxNum = max(numKid, numBal);
 MaxNum = numKid + numBal;
@@ -64,14 +64,9 @@ print_flag = 1;
 
 
 %% Main section
-while run
-    
-%% TO DO:
-    % - tidy up the scripts --> group case functions into separate files!
-    % - implement the cases !!
-    % - include the destinations to KidArray again for plot 8 (metrics)
-    % - play with parameters (sim time) a bit
 
+
+while run
 
     %% Call the Social Force Model
     [KidArrSFM] = SFM2(KidArrSFM, BalArrSFM, Room, params);
@@ -112,7 +107,7 @@ while run
         % Discern between the cases!!
         if params.Case == 1
             if print_flag
-                fprintf("The following kids have reached their balloon: ");
+                fprintf("Kids that have reached their balloon: ");
                 print_flag = 0;
             end
             fprintf("%d ", ID_KidsArrived');
@@ -179,11 +174,23 @@ while run
              
                 ID_Bal2Check = find(ismember(BalArrSFM.InitPos, KidTarget, 'rows'));
 
+                % Reveal color and ID of the balloon                
+                x_min_b = BalArrSFM.InitPos(ID_Bal2Check,1) - 0.5*BalArrSFM.Edge; 
+                y_min_b = BalArrSFM.InitPos(ID_Bal2Check,2) - 0.5*BalArrSFM.Edge;
+                x_max_b = BalArrSFM.Edge;
+                y_max_b = BalArrSFM.Edge;
+                BalArrSFM.squarefig(ID_Bal2Check) = rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], ...
+                    'FaceColor', KidArrSFM.Color((find(ismember(KidArrSFM.ID,ID_Bal2Check))),:));       
+                BalArrSFM.plotBalID(ID_Bal2Check) = text(BalArrSFM.InitPos(ID_Bal2Check,1), ...
+                    BalArrSFM.InitPos(ID_Bal2Check,2), num2str(ID_Bal2Check), ...
+                    'HorizontalAlignment', 'center', 'Color','k', 'FontSize', BalArrSFM.Edge*10);
+                
+
 
                 if (ID_KidsArrived(h) == ID_Bal2Check)
 
                     if print_flag
-                        fprintf("The following kids have reached their balloon: ");
+                        fprintf("Kids that have reached their balloon: ");
                         print_flag = 0;
                     end
                     fprintf("%d ", ID_KidsArrived(h));
@@ -232,8 +239,10 @@ while run
                     for i = 1:length(KidArrSFM.BalVisited)
                         col = find(KidArrSFM.BalVisited(i, :) == 0, 1);
                         row = find(ismember(KidArrSFM.ID,i));
-                        if ~ismember(ID_Bal2Check,KidArrSFM.BalVisited(KidArrSFM.ID(row),:))
-                            KidArrSFM.BalVisited(i, col) = ID_Bal2Check;
+                        if ~isempty(row)
+                            if ~ismember(ID_Bal2Check,KidArrSFM.BalVisited(KidArrSFM.ID(row),:))
+                                KidArrSFM.BalVisited(i, col) = ID_Bal2Check;
+                            end
                         end
                         
                     end
@@ -290,8 +299,10 @@ while run
                                     ID_Bal2Check = 0; % shouldn't be necessary anymore now that we take InitPos for ID_Bal2Check
                                 end
                                 row = find(ismember(KidArrSFM.ID,i));
-                                if ~ismember(ID_Bal2Check,KidArrSFM.BalVisited(KidArrSFM.ID(row),:))
-                                    KidArrSFM.BalVisited(i, col) = ID_Bal2Check;
+                                if ~isempty(row)
+                                    if ~ismember(ID_Bal2Check,KidArrSFM.BalVisited(KidArrSFM.ID(row),:))
+                                        KidArrSFM.BalVisited(i, col) = ID_Bal2Check;
+                                    end
                                 end
                             end
                         end

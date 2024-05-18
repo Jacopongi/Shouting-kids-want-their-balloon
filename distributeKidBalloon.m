@@ -27,6 +27,7 @@ BalloonArray.InitPos = zeros(numBal, 2);
 % - for the plots
 KidArray.circlefig = zeros(1,numKid);
 BalloonArray.squarefig = zeros(1,numBal);
+BalloonArray.plotBalID = zeros(1,numBal);
 % - remember ID's (row where ID is saved) of kids that have arrived
 KidArray.ID_arr = (1:numKid)';
 BalloonArray.ID_arr = (1:numBal)';
@@ -240,46 +241,46 @@ KidArray.DesiredVel = rand(numKid,1)*(maxVel-minVel) + minVel;
 KidArray.ActualVel = zeros(numKid,2);
 
 % Figure 
-figure
-axis equal
-axis([0 RoomWidth 0 RoomHeight])
-box on
-xlabel('x','FontSize',16)
-ylabel('y','FontSize',16)
-title('Kids in the room','FontSize',14)
-
-
+% figure
+% axis equal
+% axis([0 RoomWidth 0 RoomHeight])
+% box on
+% xlabel('x','FontSize',16)
+% ylabel('y','FontSize',16)
+% title('Kids in the room','FontSize',14)
+% 
+% 
 KidArray.Color = rand(numKid,3);
-for i = 1:numKid
-    x_min = KidArray.ActualPos(i,1) - KidArray.Radius;
-    y_min = KidArray.ActualPos(i,2) - KidArray.Radius;
-    radius_cur = KidArray.Radius;
-    KidArray.circlefig(i) = rectangle('Position',[x_min,y_min,2*radius_cur,2*radius_cur],...
-        'Curvature',[1 1], 'FaceColor',KidArray.Color(i,:));
-    text(KidArray.ActualPos(i,1), KidArray.ActualPos(i,2), num2str(KidArray.ID(i)), ...
-        'HorizontalAlignment', 'center', 'Color','k', 'FontSize', KidArray.Radius*15);
-end
-
-
-
-for i = 1:numBal
-    x_min_b = BalloonArray.ActualPos(i,1) - 0.5*BalloonArray.Edge; 
-    y_min_b = BalloonArray.ActualPos(i,2) - 0.5*BalloonArray.Edge;
-    x_max_b = BalloonArray.Edge;
-    y_max_b = BalloonArray.Edge;
-    if(i > height(KidArray.Color))
-        bcolor = rand(1,3);
-        BalloonArray.squarefig(i) = rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], ...
-        'FaceColor',bcolor);
-    else 
-        BalloonArray.squarefig(i) = rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], ...
-        'FaceColor',KidArray.Color(i,:));
-    end
-
-    text(BalloonArray.ActualPos(i,1), BalloonArray.ActualPos(i,2), num2str(BalloonArray.ID(i)), ...
-        'HorizontalAlignment', 'center', 'Color','k', 'FontSize', BalloonArray.Edge*10);
-
-end
+% for i = 1:numKid
+%     x_min = KidArray.ActualPos(i,1) - KidArray.Radius;
+%     y_min = KidArray.ActualPos(i,2) - KidArray.Radius;
+%     radius_cur = KidArray.Radius;
+%     KidArray.circlefig(i) = rectangle('Position',[x_min,y_min,2*radius_cur,2*radius_cur],...
+%         'Curvature',[1 1], 'FaceColor',KidArray.Color(i,:));
+%     text(KidArray.ActualPos(i,1), KidArray.ActualPos(i,2), num2str(KidArray.ID(i)), ...
+%         'HorizontalAlignment', 'center', 'Color','k', 'FontSize', KidArray.Radius*15);
+% end
+% 
+% 
+% 
+% for i = 1:numBal
+%     x_min_b = BalloonArray.ActualPos(i,1) - 0.5*BalloonArray.Edge; 
+%     y_min_b = BalloonArray.ActualPos(i,2) - 0.5*BalloonArray.Edge;
+%     x_max_b = BalloonArray.Edge;
+%     y_max_b = BalloonArray.Edge;
+%     if(i > height(KidArray.Color))
+%         bcolor = rand(1,3);
+%         BalloonArray.squarefig(i) = rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], ...
+%         'FaceColor',bcolor);
+%     else 
+%         BalloonArray.squarefig(i) = rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], ...
+%         'FaceColor',KidArray.Color(i,:));
+%     end
+% 
+%     BalloonArray.plotBalID(i) = text(BalloonArray.ActualPos(i,1), BalloonArray.ActualPos(i,2), num2str(BalloonArray.ID(i)), ...
+%         'HorizontalAlignment', 'center', 'Color','k', 'FontSize', BalloonArray.Edge*10);
+% 
+% end
 
 
 end
