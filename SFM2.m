@@ -161,6 +161,7 @@ elseif params.Case == 2
 
 
         % params.flagForce = 0; % can i do this just for a few balloons??
+                                % Why did i want to??
 
     end
     
@@ -168,11 +169,64 @@ elseif params.Case == 3
     % sent message needs to be the current estimated position of the kid
     % that entered in the proximity of a balloon.
     
-    % movement "randomly straight", "exploration mode"
-    %KidArrSFM.Destinations(i,:) =
+    if s==1
+        % set first destination randomly around the kid 
+        for i = 1:KidArrSFM.N            
+            angle = 2*pi*rand;  % Generate a random angle   
+            % radius=1 at first. Watch out for destinations outside of room!
+            new_x = KidArrSFM.ActualPos(i, 1) + cos(angle);
+            new_y = KidArrSFM.ActualPos(i, 2) + sin(angle);            
+            KidArrSFM.Destinations(i,:) = [new_x, new_y];
+        end
+    else
+        for i = 1:KidArrSFM.N
+            if ~KidArrSFM.FlagPosReceived(KidArrSFM.ID(i))
+                % movement "randomly straight", "exploration mode"
+                direc = normalize(KidArrSFM.ActualVel(i,:), 'norm', 2);
+                ang2hor = atan2(direc(:, 2), direc(:, 1));
+                angles = linspace(-0.25*pi, 0.25*pi, 7);       
+                rot_mat = [cos(ang2hor), -sin(ang2hor); ...
+                           sin(ang2hor),  cos(ang2hor)];
+                r_ang = randi(7);   % randomly choose one of the 7 new directions
+                xb = 2*cos(angles(r_ang));
+                yb = 2*sin(angles(r_ang));
+    
+                [xy] = rot_mat*[xb;yb]; % rotate into base frame
+    
+                KidArrSFM.Destinations(i,:) = ...
+                    KidArrSFM.ActualPos(i,:) + [xy(1), xy(2)];
+                % check if new point
+                [is_inside,exit] = isInside(KidArrSFM.Destinations(i,1), ...
+                    KidArrSFM.Destinations(i,2), Room);
+                if ~is_inside
+                    if exit == "top"
+                        KidArrSFM.Destinations(i,2) = KidArrSFM.Destinations(i,2) - 2;
+                    elseif exit == "right"
+                        KidArrSFM.Destinations(i,1) = KidArrSFM.Destinations(i,1) - 2;
+                    elseif exit == "bottom"
+                        KidArrSFM.Destinations(i,2) = KidArrSFM.Destinations(i,2) + 2;
+                    elseif exit == "left"
+                        KidArrSFM.Destinations(i,1) = KidArrSFM.Destinations(i,1) + 2;
+                    end
+                end
+
+
+            elseif KidArrSFM.FlagPosReceived(KidArrSFM.ID(i))
+                % do nothing, Destination has been set in main
+                % KidArrSFM.Destinations(i,:) = ...
+                %     KidArrSFM.ActualPos(i,:) + [xy(1), xy(2)];
+
+                % later: take average of all sent positions if more arrive
+
+            end
+
+        end
+    end    
+
+    initCond = [KidArrSFM.ActualVel(:); KidArrSFM.EstimatedPos(:)];
 
 else
-    warning("Enter a valid case !")
+    warning("Enter a valid case!")
 end
 
 
@@ -206,7 +260,8 @@ KidArrSFM.ActualVel = [KidVelX(:,end),  KidVelY(:,end)];
 % obtain the forces and the path. This then needs to be shifted into the
 % known position to obtain our next actual position
 
-if (params.Case == 1 && params.Subcase == 2) || (params.Case == 2) 
+if (params.Case == 1 && params.Subcase == 2) || (params.Case == 2) || ...
+            (params.Case == 3) 
     % The last actual known position is saved in the first two columns of
     % ActualPos => compute translation in x and y between this and its estimate
     XY_Distance = PrevActualPos - KidArrSFM.EstimatedPos;
@@ -316,7 +371,8 @@ for i = 1:KidArrSFM.N
     KidArrSFM.circlefig(i) = rectangle('Position',[x_min,y_min,2*rad,2*rad],...
     'Curvature',[1 1], 'FaceColor',KidArrSFM.Color(i,:));   
 
-    if (params.Case == 1 && params.Subcase == 2) || (params.Case == 2)
+    if (params.Case == 1 && params.Subcase == 2) || (params.Case == 2) || ...
+            (params.Case == 3)
         % plot also the estimated position for better understanding (debugging)
         x_e = KidArrSFM.EstimatedPos(i,1) - rad;
         y_e = KidArrSFM.EstimatedPos(i,2) - rad;
@@ -330,7 +386,6 @@ end
 
 
 end
-
 
 
 %%
@@ -462,8 +517,7 @@ function dydt = socialForceModel(t, y, KidArrSFM, BalArrSFM, Room, params)
 
     f_k = f_k0 + f_kj + f_kx + f_kb + f_ka + noise;
 
-    % limit maximum value to prevent rocket launch
-    
+    % limit maximum value to prevent rocket launch (rebounce)    
     if any(abs(f_k) > 1.5)
         for k=1:KidArrSFM.N
             if abs(f_k(k,1)) > 1.5
@@ -474,6 +528,18 @@ function dydt = socialForceModel(t, y, KidArrSFM, BalArrSFM, Room, params)
             end
         end
     end
+
+    % slow down kids if close to a balloon to prevent overshoot    
+        % seems to work, but it also slows down the script a lot
+    if params.Case ~= 3
+        for k=1:KidArrSFM.N
+            if all(abs(KidArrSFM.ActualPos(k,:) - KidArrSFM.Destinations(k,:))<[1.5 1.5],2)
+                f_k(k,1) = f_k(k,1)./abs(f_k(k,1)) * 0.85;            
+                f_k(k,2) = f_k(k,2)./abs(f_k(k,2)) * 0.85;           
+            end
+        end
+    end
+    
     
     %% Combine velocity and position derivatives into a single vector
     dydt = [f_k(:); vel(:)];
