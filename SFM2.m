@@ -161,14 +161,72 @@ elseif params.Case == 2
 
 
         % params.flagForce = 0; % can i do this just for a few balloons??
+                                % Why did i want to??
 
     end
     
 elseif params.Case == 3 
-    % !! find a way to neglect f_k0 in final step when we dont know the
-    % balloon position
+    % sent message needs to be the current estimated position of the kid
+    % that entered in the proximity of a balloon.
+    
+    if s==1
+        % set first destination randomly around the kid 
+        for i = 1:KidArrSFM.N            
+            angle = 2*pi*rand;  % Generate a random angle   
+            % radius=1 at first. Watch out for destinations outside of room!
+            new_x = KidArrSFM.ActualPos(i, 1) + cos(angle);
+            new_y = KidArrSFM.ActualPos(i, 2) + sin(angle);            
+            KidArrSFM.Destinations(i,:) = [new_x, new_y];
+        end
+    else
+        for i = 1:KidArrSFM.N
+            if ~KidArrSFM.FlagPosReceived(KidArrSFM.ID(i))
+                % movement "randomly straight", "exploration mode"
+                direc = normalize(KidArrSFM.ActualVel(i,:), 'norm', 2);
+                ang2hor = atan2(direc(:, 2), direc(:, 1));
+                angles = linspace(-0.25*pi, 0.25*pi, 7);       
+                rot_mat = [cos(ang2hor), -sin(ang2hor); ...
+                           sin(ang2hor),  cos(ang2hor)];
+                r_ang = randi(7);   % randomly choose one of the 7 new directions
+                xb = 2*cos(angles(r_ang));
+                yb = 2*sin(angles(r_ang));
+    
+                [xy] = rot_mat*[xb;yb]; % rotate into base frame
+    
+                KidArrSFM.Destinations(i,:) = ...
+                    KidArrSFM.ActualPos(i,:) + [xy(1), xy(2)];
+                % check if new point
+                [is_inside,exit] = isInside(KidArrSFM.Destinations(i,1), ...
+                    KidArrSFM.Destinations(i,2), Room);
+                if ~is_inside
+                    if exit == "top"
+                        KidArrSFM.Destinations(i,2) = KidArrSFM.Destinations(i,2) - 2;
+                    elseif exit == "right"
+                        KidArrSFM.Destinations(i,1) = KidArrSFM.Destinations(i,1) - 2;
+                    elseif exit == "bottom"
+                        KidArrSFM.Destinations(i,2) = KidArrSFM.Destinations(i,2) + 2;
+                    elseif exit == "left"
+                        KidArrSFM.Destinations(i,1) = KidArrSFM.Destinations(i,1) + 2;
+                    end
+                end
+
+
+            elseif KidArrSFM.FlagPosReceived(KidArrSFM.ID(i))
+                % do nothing, Destination has been set in main
+                % KidArrSFM.Destinations(i,:) = ...
+                %     KidArrSFM.ActualPos(i,:) + [xy(1), xy(2)];
+
+                % later: take average of all sent positions if more arrive
+
+            end
+
+        end
+    end    
+
+    initCond = [KidArrSFM.ActualVel(:); KidArrSFM.EstimatedPos(:)];
+
 else
-    warning("Enter a valid case !")
+    warning("Enter a valid case!")
 end
 
 
@@ -202,7 +260,8 @@ KidArrSFM.ActualVel = [KidVelX(:,end),  KidVelY(:,end)];
 % obtain the forces and the path. This then needs to be shifted into the
 % known position to obtain our next actual position
 
-if (params.Case == 1 && params.Subcase == 2) || (params.Case == 2) 
+if (params.Case == 1 && params.Subcase == 2) || (params.Case == 2) || ...
+            (params.Case == 3) 
     % The last actual known position is saved in the first two columns of
     % ActualPos => compute translation in x and y between this and its estimate
     XY_Distance = PrevActualPos - KidArrSFM.EstimatedPos;
@@ -228,22 +287,25 @@ subtitle(append('Case: ',num2str(params.Case),'.',num2str(params.Subcase)));
 
 % Plot balloon squares only at first function call
 if s == 1   
-    squarefig = zeros(1,BalArrSFM.N);
-    for i = 1:BalArrSFM.N
+    BalArrSFM.squarefig = zeros(1,BalArrSFM.N);
+    for i = 1:KidArrSFM.N
         x_min_b = BalArrSFM.ActualPos(i,1) - 0.5*BalArrSFM.Edge; 
         y_min_b = BalArrSFM.ActualPos(i,2) - 0.5*BalArrSFM.Edge;
         x_max_b = BalArrSFM.Edge;
         y_max_b = BalArrSFM.Edge;
-        squarefig(i) = rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], ...
-            'FaceColor', KidArrSFM.Color(i,:));       
-        text(BalArrSFM.ActualPos(i,1), BalArrSFM.ActualPos(i,2), num2str(BalArrSFM.ID(i)), ...
-            'HorizontalAlignment', 'center', 'Color','k', 'FontSize', BalArrSFM.Edge*10);
+        
+        % hide them at first and reveal only once reached by a kid
+        BalArrSFM.squarefig(i) = rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], ...
+        'FaceColor', 'w');       
+        BalArrSFM.plotBalID(i) = text(BalArrSFM.ActualPos(i,1), BalArrSFM.ActualPos(i,2), num2str(BalArrSFM.ID(i)), ...
+        'HorizontalAlignment', 'center', 'Color','k', 'FontSize', BalArrSFM.Edge*10, 'Visible','off');        
     end
+
 
     for i = 1:KidArrSFM.N        
         % starting position bigger and with number. Plot only once! BUT:
         % s=1 is already the first step (actualpos~=initpos) => plot both
-        % in this instance. Not so pretty but vabbè
+        % in this instance.
         rad = KidArrSFM.Radius;
         x_min = KidArrSFM.InitPos(i,1) - rad;
         y_min = KidArrSFM.InitPos(i,2) - rad;
@@ -256,52 +318,49 @@ end
 
 
 % determine # of gobjects needed for plot
-% if length(KidArrSFM.N) < 13     % otherwise too computationally demanding. If loop added after
-                                % the inside, which should theoretically work for more, was written.
-    m = floor(KidArrSFM.N/12);  % maximum 12 entries per set => m = # full sets (stack of 12)
-    n = mod(KidArrSFM.N, 12);   % # > k*12 (number of kids that exceed a multiple of 12)
-        % keep in mind to dynamically adjust the array size bc kids get
-        % eliminated from the optimization once they reached their balloon
 
-    for i = 1:m   
-        name = strcat('set', num2str(i));     
-        AL.(name) = gobjects(12,1);
-        for j = 1:12 
-            AL.(name)(j) = animatedline('Color', KidArrSFM.Color(j,:));
-        end
+m = floor(KidArrSFM.N/12);  % maximum 12 entries per set => m = # full sets (stack of 12)
+n = mod(KidArrSFM.N, 12);   % # > k*12 (number of kids that exceed a multiple of 12)
+    % keep in mind to dynamically adjust the array size bc kids get
+    % eliminated from the optimization once they reached their balloon
+
+for i = 1:m   
+    name = strcat('set', num2str(i));     
+    AL.(name) = gobjects(12,1);
+    for j = 1:12 
+        AL.(name)(j) = animatedline('Color', KidArrSFM.Color(j,:));
     end
+end
+if n~=0
+    name = strcat('set', num2str(m+1)); 
+    AL.(name) = gobjects(n,1);
+    for j = 1:n 
+        AL.(name)(j) = animatedline('Color', KidArrSFM.Color(12*m+j,:));
+    end       
+end
+
+% Actually plotting the animated lines
+l = length(t);
+KidPosX = KidPosX(:, 1:floor(1 + l/100):end); % shorten the point array
+KidPosY = KidPosY(:, 1:floor(1 + l/100):end);
+
+for i = 1:length(KidPosX)
+    for j = 1:m     
+        name = strcat('set', num2str(j));
+        for k = 1:12 
+            addpoints(AL.(name)(k), KidPosX(k,i), KidPosY(k,i));
+        end                                
+    end
+
     if n~=0
-        name = strcat('set', num2str(m+1)); 
-        AL.(name) = gobjects(n,1);
-        for j = 1:n 
-            AL.(name)(j) = animatedline('Color', KidArrSFM.Color(12*m+j,:));
-        end       
-    end
-    
-    % Actually plotting the animated lines
-    l = length(t);
-    KidPosX = KidPosX(:, 1:floor(1 + l/100):end); % shorten the point array
-    KidPosY = KidPosY(:, 1:floor(1 + l/100):end);
-
-    for i = 1:length(KidPosX)
-        for j = 1:m     
-            name = strcat('set', num2str(j));
-            for k = 1:12 
-                addpoints(AL.(name)(k), KidPosX(k,i), KidPosY(k,i));
-            end                                
+        name = strcat('set', num2str(m+1));
+        for k = 1:n 
+            addpoints(AL.(name)(k), KidPosX(12*m+k,i), KidPosY(12*m+k,i));
         end
-
-        if n~=0
-            name = strcat('set', num2str(m+1));
-            for k = 1:n 
-                addpoints(AL.(name)(k), KidPosX(12*m+k,i), KidPosY(12*m+k,i));
-            end
-        end
-        drawnow %limitrate;  % for faster animation
-
     end
-% end
-%}
+    drawnow %limitrate;  % for faster animation
+
+end
 
 % KidArrSFM.circlefig = zeros(1,KidArrSFM.N);
 for i = 1:KidArrSFM.N    
@@ -312,12 +371,13 @@ for i = 1:KidArrSFM.N
     KidArrSFM.circlefig(i) = rectangle('Position',[x_min,y_min,2*rad,2*rad],...
     'Curvature',[1 1], 'FaceColor',KidArrSFM.Color(i,:));   
 
-    if (params.Case == 1 && params.Subcase == 2) || (params.Case == 2)
+    if (params.Case == 1 && params.Subcase == 2) || (params.Case == 2) || ...
+            (params.Case == 3)
         % plot also the estimated position for better understanding (debugging)
         x_e = KidArrSFM.EstimatedPos(i,1) - rad;
         y_e = KidArrSFM.EstimatedPos(i,2) - rad;
         rectangle('Position',[x_e,y_e,2*rad,2*rad],...
-        'Curvature',[1 1], 'FaceColor', "#808080", 'LineStyle', ":");   
+        'Curvature',[1 1], 'EdgeColor', KidArrSFM.Color(i,:));   
     end
 end
 
@@ -326,7 +386,6 @@ end
 
 
 end
-
 
 
 %%
@@ -458,8 +517,7 @@ function dydt = socialForceModel(t, y, KidArrSFM, BalArrSFM, Room, params)
 
     f_k = f_k0 + f_kj + f_kx + f_kb + f_ka + noise;
 
-    % limit maximum value to prevent rocket launch
-    
+    % limit maximum value to prevent rocket launch (rebounce)    
     if any(abs(f_k) > 1.5)
         for k=1:KidArrSFM.N
             if abs(f_k(k,1)) > 1.5
@@ -470,6 +528,18 @@ function dydt = socialForceModel(t, y, KidArrSFM, BalArrSFM, Room, params)
             end
         end
     end
+
+    % slow down kids if close to a balloon to prevent overshoot    
+        % seems to work, but it also slows down the script a lot
+    if params.Case ~= 3
+        for k=1:KidArrSFM.N
+            if all(abs(KidArrSFM.ActualPos(k,:) - KidArrSFM.Destinations(k,:))<[1.5 1.5],2)
+                f_k(k,1) = f_k(k,1)./abs(f_k(k,1)) * 0.85;            
+                f_k(k,2) = f_k(k,2)./abs(f_k(k,2)) * 0.85;           
+            end
+        end
+    end
+    
     
     %% Combine velocity and position derivatives into a single vector
     dydt = [f_k(:); vel(:)];

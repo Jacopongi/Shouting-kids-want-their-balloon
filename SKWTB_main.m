@@ -14,9 +14,9 @@ close all
 %% Parameter initialization
 
 % Number of Kids
-numKid = 14;
+numKid = 7;
 % Number of Balloon
-numBal = 14;
+numBal = 7;
 
 % MaxNum = max(numKid, numBal);
 MaxNum = numKid + numBal;
@@ -28,7 +28,8 @@ Room.Height = MaxNum ;      % [m]
 
 
 % Random positioning of kids and balloons inside the room
-[KidArray, BalloonArray] = distributeKidBalloon(numKid, numBal, Room.Width, Room.Height, 1);
+[KidArray, BalloonArray] = ...
+    distributeKidBalloon(numKid, numBal, Room.Width, Room.Height, 3);
 
 % Number of sensor
 % Sensor.Num = 7;
@@ -55,7 +56,7 @@ KidArrSFM = KidArray;
 BalArrSFM = BalloonArray;
 
 % Parameters & flags
-params.Case = 2;
+params.Case = 1;
 params.Subcase = 2;
 params.t = 1.5;
 params.flagForce = 0;   % de-/activate the repulsive force of non-targeted balloons
@@ -64,20 +65,16 @@ print_flag = 1;
 
 
 %% Main section
-while run
-    
-%% TO DO:
-    % - tidy up the scripts --> group case functions into separate files!
-    % - implement the cases !!
-    % - include the destinations to KidArray again for plot 8 (metrics)
-    % - play with parameters (sim time) a bit
 
+
+while run
 
     %% Call the Social Force Model
     [KidArrSFM] = SFM2(KidArrSFM, BalArrSFM, Room, params);
 
     %% Estimate positions of kids with sensors
-    if (params.Case == 1 && params.Subcase == 2) || (params.Case == 2)
+    if (params.Case == 1 && params.Subcase == 2) || (params.Case == 2) || ...
+            (params.Case == 3)
         % The updated positions that we obtain from the SFM are the new
         % actual positions after we've shifted the initial
         % in these cases we need to estimate t
@@ -102,28 +99,52 @@ while run
 
   
     %% Check if any kid has reached a balloon
-    touch = KidArray.Radius + BalloonArray.Edge/2;
-    arrived = all(abs(KidArrSFM.ActualPos - KidArrSFM.Destinations)<[touch touch],2);
+    if (params.Case == 1) || (params.Case == 2)
+        touch = KidArray.Radius + BalloonArray.Edge/2;
+        arrived = all(abs(KidArrSFM.ActualPos - KidArrSFM.Destinations)<[touch touch],2);
+    elseif (params.Case == 3)
+        touch = KidArray.Radius + BalloonArray.Edge;    % choose a bit bigger here to try out
+        % arrived = all(abs(KidArrSFM.ActualPos - BalArrSFM.ActualPos)<[touch touch],2);
+
+        % this index belongs to the balloon at which the kid arrived
+        [dist,indx] = min(pdist2(KidArrSFM.ActualPos,BalArrSFM.ActualPos),[],2);
+        arrived = find(dist<touch);
+    end
+
     if any(arrived)
         % Extract ID of kids that reached their balloon
         ID_KidsArrived = KidArrSFM.ID(arrived);
 
-        %% Print output to command window
-        % Discern between the cases!!
-        if params.Case == 1
+       
+        
+        %% Exclude kids that have arrived from the next optimization step 
+        % Distinguish between cases!
+      
+        if (params.Case == 1)
+            
+            % Print output to command window
             if print_flag
-                fprintf("The following kids have reached their balloon: ");
+                fprintf("Kids that have reached their balloon: ");
                 print_flag = 0;
             end
             fprintf("%d ", ID_KidsArrived');
-        end
 
 
-        
-        %% Exclude kids that have arrived from the next optimization step 
-        % Distinguish between cases 1 and 2!
-      
-        if (params.Case == 1)
+            % Reveal color and ID of the balloon      
+            for i = 1:length(ID_KidsArrived)
+                x_min_b = BalArrSFM.InitPos(ID_KidsArrived(i),1) - 0.5*BalArrSFM.Edge; 
+                y_min_b = BalArrSFM.InitPos(ID_KidsArrived(i),2) - 0.5*BalArrSFM.Edge;
+                x_max_b = BalArrSFM.Edge;
+                y_max_b = BalArrSFM.Edge;
+                BalArrSFM.squarefig(ID_KidsArrived(i)) = rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], ...
+                    'FaceColor', KidArrSFM.Color((find(ismember(KidArrSFM.ID,ID_KidsArrived(i)))),:));       
+                BalArrSFM.plotBalID(ID_KidsArrived(i)) = text(BalArrSFM.InitPos(ID_KidsArrived(i),1), ...
+                    BalArrSFM.InitPos(ID_KidsArrived(i),2), num2str(ID_KidsArrived(i)), ...
+                    'HorizontalAlignment', 'center', 'Color','k', 'FontSize', BalArrSFM.Edge*10);
+            end
+
+
+
             fields = fieldnames(KidArrSFM);
             KidArrSFM.ID_arr = find(ismember(KidArrSFM.ID,ID_KidsArrived));
             indx_ID = find(strcmp(fields, 'ID'));
@@ -158,7 +179,8 @@ while run
                 BalArrSFM.(fields1{i}) = updatedMatrix1;
             end
         end
-%%
+
+        %% CASE 2
         if (params.Case == 2)
             % Check if the kids arrived at their correct balloon (same ID)
             % extract ID's of the closest balloons --> Destinations
@@ -179,11 +201,24 @@ while run
              
                 ID_Bal2Check = find(ismember(BalArrSFM.InitPos, KidTarget, 'rows'));
 
+                % Reveal color and ID of the balloon  
+                if ismember(ID_Bal2Check, KidArrSFM.ID)
+                    x_min_b = BalArrSFM.InitPos(ID_Bal2Check,1) - 0.5*BalArrSFM.Edge; 
+                    y_min_b = BalArrSFM.InitPos(ID_Bal2Check,2) - 0.5*BalArrSFM.Edge;
+                    x_max_b = BalArrSFM.Edge;
+                    y_max_b = BalArrSFM.Edge;
+                    BalArrSFM.squarefig(ID_Bal2Check) = rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], ...
+                        'FaceColor', KidArrSFM.Color((find(ismember(KidArrSFM.ID,ID_Bal2Check))),:));       
+                    BalArrSFM.plotBalID(ID_Bal2Check) = text(BalArrSFM.InitPos(ID_Bal2Check,1), ...
+                        BalArrSFM.InitPos(ID_Bal2Check,2), num2str(ID_Bal2Check), ...
+                        'HorizontalAlignment', 'center', 'Color','k', 'FontSize', BalArrSFM.Edge*10);
+                end
+
 
                 if (ID_KidsArrived(h) == ID_Bal2Check)
 
                     if print_flag
-                        fprintf("The following kids have reached their balloon: ");
+                        fprintf("Kids that have reached their balloon: ");
                         print_flag = 0;
                     end
                     fprintf("%d ", ID_KidsArrived(h));
@@ -232,8 +267,10 @@ while run
                     for i = 1:length(KidArrSFM.BalVisited)
                         col = find(KidArrSFM.BalVisited(i, :) == 0, 1);
                         row = find(ismember(KidArrSFM.ID,i));
-                        if ~ismember(ID_Bal2Check,KidArrSFM.BalVisited(KidArrSFM.ID(row),:))
-                            KidArrSFM.BalVisited(i, col) = ID_Bal2Check;
+                        if ~isempty(row)
+                            if ~ismember(ID_Bal2Check,KidArrSFM.BalVisited(KidArrSFM.ID(row),:))
+                                KidArrSFM.BalVisited(i, col) = ID_Bal2Check;
+                            end
                         end
                         
                     end
@@ -264,14 +301,6 @@ while run
                         % destination for the respective kid and put the
                         % respective balloon as "already visited" for all
                         % others
-                        
-                    % here something is off... 
-            % the problem is that if kid 1 and 2 have arrived at a balloon,
-            % we first check kid1. if kid1 arrived at balloon 2, it sends a
-            % message to kid 2 (hey, your balloon is here) ==> destination
-            % of kid 2 is set to balloon 2. ==> this though leads to the
-            % issue that the next ID_Bal2check is bal2 and a match is found
-            % which is wrong...
 
                         for i = 1:length(KidArrSFM.BalVisited)
                             col = find(KidArrSFM.BalVisited(i, :) == 0, 1);
@@ -290,8 +319,10 @@ while run
                                     ID_Bal2Check = 0; % shouldn't be necessary anymore now that we take InitPos for ID_Bal2Check
                                 end
                                 row = find(ismember(KidArrSFM.ID,i));
-                                if ~ismember(ID_Bal2Check,KidArrSFM.BalVisited(KidArrSFM.ID(row),:))
-                                    KidArrSFM.BalVisited(i, col) = ID_Bal2Check;
+                                if ~isempty(row)
+                                    if ~ismember(ID_Bal2Check,KidArrSFM.BalVisited(KidArrSFM.ID(row),:))
+                                        KidArrSFM.BalVisited(i, col) = ID_Bal2Check;
+                                    end
                                 end
                             end
                         end
@@ -304,7 +335,111 @@ while run
             %KidArrSFM.ID(find(MemoPosReceived));
             KidArrSFM.Destinations(row_of_ID,:) = BalArrSFM.ActualPos(row_of_ID,:);
 
-        end   
+        end  
+
+        %% CASE 3
+        % In contrast to case 2, the sent message needs to include the
+        % estimate of the kid's actual position at the time step when it
+        % arrived at a balloon and NOT directly the balloon's position or
+        % it's own actual position.
+        % Also, not all other kids should be informed but only the one to
+        % whom the balloon belongs. If another kid stops by the same
+        % balloon it also sends his estimated position so with time the
+        % actual kid gets an increasingly better estimate of its balloon's
+        % location.
+        % All kids continue to wander around randomly until they've found
+        % their own balloon.
+       
+        if (params.Case == 3)
+            % 
+            for h = 1:length(ID_KidsArrived)
+
+                % get row of arrived kid
+                rKidID_arr = find(ismember(KidArrSFM.ID, ID_KidsArrived(h), 'rows'));
+                [~,ID_Bal2Check] = min(sum(abs(KidArrSFM.ActualPos(rKidID_arr,:) - ...
+                                BalArrSFM.InitPos),2));
+                
+                % Reveal color and ID of the balloon  
+                if ismember(ID_Bal2Check, KidArrSFM.ID)
+                    x_min_b = BalArrSFM.InitPos(ID_Bal2Check,1) - 0.5*BalArrSFM.Edge; 
+                    y_min_b = BalArrSFM.InitPos(ID_Bal2Check,2) - 0.5*BalArrSFM.Edge;
+                    x_max_b = BalArrSFM.Edge;
+                    y_max_b = BalArrSFM.Edge;
+                    BalArrSFM.squarefig(ID_Bal2Check) = rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], ...
+                        'FaceColor', KidArrSFM.Color((find(ismember(KidArrSFM.ID,ID_Bal2Check))),:));       
+                    BalArrSFM.plotBalID(ID_Bal2Check) = text(BalArrSFM.InitPos(ID_Bal2Check,1), ...
+                        BalArrSFM.InitPos(ID_Bal2Check,2), num2str(ID_Bal2Check), ...
+                        'HorizontalAlignment', 'center', 'Color','k', 'FontSize', BalArrSFM.Edge*10);
+                end
+
+                if (ID_KidsArrived(h) == ID_Bal2Check)
+
+                    if print_flag
+                        fprintf("Kids that have reached their balloon: ");
+                        print_flag = 0;
+                    end
+                    fprintf("%d ", ID_KidsArrived(h));
+
+
+                    % Match found --> removal process for both kid X and
+                    % its balloon => same as for case 1
+                    fields = fieldnames(KidArrSFM);
+                    KidArrSFM.ID_arr = find(ismember(KidArrSFM.ID,ID_KidsArrived(h)));
+                    indx_ID = find(strcmp(fields, 'ID'));
+                    for i = indx_ID:numel(fields)
+                    % start from ID bc all fields before that are of no interest in KidArrSFM
+                        % Get the matrix from the current field
+                        originalMatrix = KidArrSFM.(fields{i});
+                        
+                        % Delete the arrived kids from all the matrices
+                        updatedMatrix = originalMatrix;
+                        updatedMatrix(KidArrSFM.ID_arr, :) = [];
+                                    
+                        % Update the struct with the modified matrix
+                        KidArrSFM.(fields{i}) = updatedMatrix;
+                    end
+                                
+                    % Do the same for the balloons        
+                    fields1 = fieldnames(BalArrSFM);
+                    BalArrSFM.ID_arr = find(ismember(BalArrSFM.ID,ID_KidsArrived(h)));
+                    indx_ID1 = find(strcmp(fields1, 'ID'));
+                    for i = indx_ID1:numel(fields1)
+                    % start from ID
+                        % Get the matrix from the current field
+                        originalMatrix1 = BalArrSFM.(fields1{i});
+                        
+                        % Delete the arrived kids from all the matrices
+                        updatedMatrix1 = originalMatrix1;
+                        updatedMatrix1(BalArrSFM.ID_arr, :) = [];
+            
+                        % Update the struct with the modified matrix
+                        BalArrSFM.(fields1{i}) = updatedMatrix1;
+                    end
+    
+                    KidArrSFM.N = KidArrSFM.N - 1;
+
+                    % continue ?? => no, we have no BalVisited in this case
+
+                else
+                    % not a match => send message to the respective kid
+                    % giving them their new destination
+                    [~,rKid_msg] = ismember(ID_Bal2Check, KidArrSFM.ID);
+                    if rKid_msg 
+                        % if two kids arrive simultaneously at the same
+                        % balloon enter loop only one otherwise error
+                        KidArrSFM.Destinations(rKid_msg,:) = ...
+                            KidArrSFM.EstimatedPos(rKidID_arr,:);
+                    end
+
+                    % FlagPosReceived to prevent overwriting of next
+                    % destination
+                    KidArrSFM.FlagPosReceived(ID_Bal2Check) = 1;                   
+
+                end
+
+            end
+
+        end
 
         % Update N in KidArrSFM
         if (params.Case == 1)
