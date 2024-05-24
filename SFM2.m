@@ -1,233 +1,31 @@
-function [KidArrSFM] = SFM2(KidArrSFM, BalArrSFM, Room, params)
+function [KidArrSFM, BalArrSFM, params] = ...
+                        SFM2(KidArrSFM, BalArrSFM, Sensor, Room, params)
 % Summary: Social Force Model and different cases of analysis
 % Description: implementation of the Social Force Model according to the paper 
-% "Parameter Calibration of a Social Force Model for the Crowd-Induced Vibrations of Footbridges" 
-% by Elisa Bassoli and Loris Vincenzi
+% "Parameter Calibration of a Social Force Model for the Crowd-Induced Vibrations
+% of Footbridges" by Elisa Bassoli and Loris Vincenzi
     % NOTE: alpha from the paper becomes k
     %       beta from the paper becomes j
 
 % Return values in KidArrSFM that get updated are:
-    % Positions
-    % ActualVel
+    % - Positions
+    % - ActualVel
 
 
 %% Counter for number of function calls during one run
-persistent s 
-if isempty(s)
-    s = 0;
-end
-s = s + 1;
+% Necessary to execute some parts of the code only at first call
+% persistent s 
+% if isempty(s)
+%     s = 0;
+% end
+% s = s + 1;
+
+params.NumSFMExec = params.NumSFMExec + 1;
 
 %% Case distinction
-
-%{
-1)  With sensors, positions of kids and corresponding balloons are known.
-	1.1 Use absolute positions as reference.
-	1.2 Use estimated positions (with sensors) as case of study.
-    Testing with different sensor number to verify correct functioning of "ChooseSensorNumber" function. 
-
-2)  With sensors, positions of kids and balloons are known. 
-    2.1 Kids are guided to closest balloon. Once reached, they verify if it belongs to them.
-        If yes, they stop. Otherwise, they proceed to the next closest one.
-    2.2 Alternative: they send a message with the balloon number so the
-        corresponding kid is guided towards it.
-	    All other kids are pushed away from that balloon (Repulsive force SFM).
-
-3)  With sensors, known positions of kids only.
-    Kids wander around. Once they find a balloon, they verify if it belongs to them.
-    if true, they stop. Otherwise, they send a message with their estimated position. Corresponding kid is called to reach that position. 
-    Spiral movement from estimated position if the balloon can't be seen from that position.
-    Other kids passing near the balloon send messages to improve the estimation.  
-    Alternative: they send a message with the balloon number and the corresponding kid is guided to it.
-%}
-
-% !!! => use flags to de-/activate forces for different cases (in params) ???
-
-if params.Case == 1
-    % Every kid knows which balloon is theirs and runs towards it
-    KidArrSFM.Destinations = BalArrSFM.ActualPos;
-    if params.Subcase == 1
-        % Combine initial positions and velocities into a single vector
-        % Use absolute positions as reference
-        initCond = [KidArrSFM.ActualVel(:); KidArrSFM.ActualPos(:)];
-    elseif params.Subcase == 2
-        % Use estimated positions     
-        initCond = [KidArrSFM.ActualVel(:); KidArrSFM.EstimatedPos(:)];
-    end
-
-elseif params.Case == 2 
-    if (params.Subcase == 1) || (params.Subcase == 2 && s == 1)
-
-      % MAKE THIS SECTION MORE UNDERSTANDABLE, IT SEEMS TO WORK BUT IT'S A
-      % MESS TO UNDERSTAND WITH ALL THE NESTED COMMANDS !
-
-        % every kid runs to the nearest balloon
-        distances = pdist2(KidArrSFM.ActualPos, BalArrSFM.ActualPos);
-        [~, currentGoal] = min(distances, [], 2);
-        
-        for i = 1:KidArrSFM.N   
-            % if currently targeted balloon has been visited before
-            row_of_ID = find(ismember(KidArrSFM.ID,KidArrSFM.ID(currentGoal(i))));
-            if ismember(KidArrSFM.ID(row_of_ID),KidArrSFM.BalVisited(KidArrSFM.ID(i),:))
-                % [~,c_idx] = find(ismember(indices(i), ...
-                %                       KidArrSFM.BalVisited(KidArrSFM.ID(i),:)));
-                % set all visited balloons in distance array to inf, so the
-                % next closest will be chosen as next goal
-                nonzero = find(KidArrSFM.BalVisited(KidArrSFM.ID(i),:)); % find all non zero elements
-                set2inf = find(ismember(KidArrSFM.ID, KidArrSFM.BalVisited(KidArrSFM.ID(i),nonzero)));
-                distances(i, set2inf) = inf;
-                
-            end
-        end
-        [~, currentGoal] = min(distances, [], 2);   % determine next closest balloon
-    
-        KidArrSFM.Destinations = BalArrSFM.ActualPos(currentGoal, :);
-        initCond = [KidArrSFM.ActualVel(:); KidArrSFM.EstimatedPos(:)];
-
-
-    elseif params.Subcase == 2
-        % kids send messages to the others (as a first step send to all others)
-        % => X reaches Y, lets all others know about Y => Y goes to Y, all
-        % others ignore/avoid Y
-        
-        % First step is the same: see above
-        
-        % Since we've already set destinations in the main we don't want to
-        % overwrite them now, we just want to add the closest balloon to
-        % those kids that don't have an updated destination
-
-        % distances = pdist2(KidArrSFM.ActualPos, BalArrSFM.ActualPos); % InitPos
-        % [~, currentGoal] = min(distances, [], 2);   % currentGoal contains ID!
-        % 
-        % for i = 1:KidArrSFM.N   % = only those that are still on the run
-        %     row_of_ID = find(ismember(KidArrSFM.ID,currentGoal(i))); % wos is der sinn von dera zeile gwesn?
-        %                 % i moan dass i do davo ausganga bin dass
-        % 
-        %     % if currently targeted balloon has been visited before
-        %     if ismember(KidArrSFM.ID(row_of_ID),KidArrSFM.BalVisited(KidArrSFM.ID(i),:))
-                % set all visited balloons in distance array to inf, so the
-                % next closest will be chosen as next goal
-        %         nonzero = find(KidArrSFM.BalVisited(KidArrSFM.ID(i),:)); % find all non zero elements
-        %         set2inf = find(ismember(KidArrSFM.ID, KidArrSFM.BalVisited(KidArrSFM.ID(i),nonzero)));
-        %         distances(i, set2inf) = inf;
-        %         [~, currentGoal(i)] = min(distances(i,:), [], 2);   % determine next closest balloon only for this kid
-        % % problem: sometimes first if loop is not entered and second if
-        % % loop can't be reached
-        % % => base balvisited on the actual pos of balloons and not on
-        % 
-        %         if (~KidArrSFM.FlagPosReceived(KidArrSFM.ID(i))) || ...
-        %            (~ismember(KidArrSFM.Destinations(i,:),BalArrSFM.ActualPos,'rows'))                  
-        %             % Next closest balloon is set as the new destination,
-        %             % only if the kid has not been communicated the actual
-        %             % position of their balloon, or if their current target
-        %             % "doesn't exist anymore"/has been found by its
-        %             % respective kid
-        %             KidArrSFM.Destinations(i,:) = BalArrSFM.ActualPos(currentGoal(i), :);
-        %         end
-        %     end
-        % end
-
-        % second try => seems to work
-        distances = pdist2(KidArrSFM.ActualPos, BalArrSFM.InitPos); % InitPos
-        [~, currentGoal] = min(distances, [], 2);   % currentGoal contains Bal-ID!
-
-        for i = 1:KidArrSFM.N   % = only those that are still on the run
-                       
-            % check if currently targeted balloon has been visited before
-            if ismember(currentGoal(i),KidArrSFM.BalVisited(KidArrSFM.ID(i),:))
-                % set all visited balloons in distance array to infinity,
-                % so the next closest will be chosen as next goal
-                nonzero = find(KidArrSFM.BalVisited(KidArrSFM.ID(i),:)); % find all non zero elements
-                set2inf = KidArrSFM.BalVisited(KidArrSFM.ID(i),nonzero);
-                distances(i, set2inf) = inf;
-                [~, currentGoal(i)] = min(distances(i,:), [], 2);   % determine next closest balloon only for this kid
-        
-                if (~KidArrSFM.FlagPosReceived(KidArrSFM.ID(i))) || ...
-                   (~ismember(KidArrSFM.Destinations(i,:),BalArrSFM.ActualPos,'rows'))                  
-                    % Next closest balloon is set as the new destination,
-                    % only if the kid has not been communicated the actual
-                    % position of their balloon, or if their current target
-                    % "doesn't exist anymore"/has been found by its
-                    % respective kid
-                    KidArrSFM.Destinations(i,:) = BalArrSFM.InitPos(currentGoal(i), :);
-                end
-            end
-        end
-        
-        % KidArrSFM.Destinations(find(ismember(KidArrSFM.ID,KidArrSFM.ID_arr)),:) = ...
-
-
-        initCond = [KidArrSFM.ActualVel(:); KidArrSFM.EstimatedPos(:)];
-
-
-        % params.flagForce = 0; % can i do this just for a few balloons??
-                                % Why did i want to??
-
-    end
-    
-elseif params.Case == 3 
-    % sent message needs to be the current estimated position of the kid
-    % that entered in the proximity of a balloon.
-    
-    if s==1
-        % set first destination randomly around the kid 
-        for i = 1:KidArrSFM.N            
-            angle = 2*pi*rand;  % Generate a random angle   
-            % radius=1 at first. Watch out for destinations outside of room!
-            new_x = KidArrSFM.ActualPos(i, 1) + cos(angle);
-            new_y = KidArrSFM.ActualPos(i, 2) + sin(angle);            
-            KidArrSFM.Destinations(i,:) = [new_x, new_y];
-        end
-    else
-        for i = 1:KidArrSFM.N
-            if ~KidArrSFM.FlagPosReceived(KidArrSFM.ID(i))
-                % movement "randomly straight", "exploration mode"
-                direc = normalize(KidArrSFM.ActualVel(i,:), 'norm', 2);
-                ang2hor = atan2(direc(:, 2), direc(:, 1));
-                angles = linspace(-0.25*pi, 0.25*pi, 7);       
-                rot_mat = [cos(ang2hor), -sin(ang2hor); ...
-                           sin(ang2hor),  cos(ang2hor)];
-                r_ang = randi(7);   % randomly choose one of the 7 new directions
-                xb = 2*cos(angles(r_ang));
-                yb = 2*sin(angles(r_ang));
-    
-                [xy] = rot_mat*[xb;yb]; % rotate into base frame
-    
-                KidArrSFM.Destinations(i,:) = ...
-                    KidArrSFM.ActualPos(i,:) + [xy(1), xy(2)];
-                % check if new point
-                [is_inside,exit] = isInside(KidArrSFM.Destinations(i,1), ...
-                    KidArrSFM.Destinations(i,2), Room);
-                if ~is_inside
-                    if exit == "top"
-                        KidArrSFM.Destinations(i,2) = KidArrSFM.Destinations(i,2) - 2;
-                    elseif exit == "right"
-                        KidArrSFM.Destinations(i,1) = KidArrSFM.Destinations(i,1) - 2;
-                    elseif exit == "bottom"
-                        KidArrSFM.Destinations(i,2) = KidArrSFM.Destinations(i,2) + 2;
-                    elseif exit == "left"
-                        KidArrSFM.Destinations(i,1) = KidArrSFM.Destinations(i,1) + 2;
-                    end
-                end
-
-
-            elseif KidArrSFM.FlagPosReceived(KidArrSFM.ID(i))
-                % do nothing, Destination has been set in main
-                % KidArrSFM.Destinations(i,:) = ...
-                %     KidArrSFM.ActualPos(i,:) + [xy(1), xy(2)];
-
-                % later: take average of all sent positions if more arrive
-
-            end
-
-        end
-    end    
-
-    initCond = [KidArrSFM.ActualVel(:); KidArrSFM.EstimatedPos(:)];
-
-else
-    warning("Enter a valid case!")
-end
+% set initial conditions for the separate cases
+[KidArrSFM, BalArrSFM, params] = ...
+                    CaseDistinction(KidArrSFM, BalArrSFM, Sensor, Room, params);
 
 
 %% Optimization step
@@ -236,12 +34,12 @@ end
 PrevActualPos = KidArrSFM.ActualPos;
 
 % Set simulation time
-tSpan = [0, params.t];    % for example
+tSpan = [0, params.t];
 
 options = odeset('RelTol', 1e-3, 'AbsTol', 1e-4);
 %tic
 [t, y] = ode113(@(t,y) socialForceModel(t, y, KidArrSFM, BalArrSFM, Room, params), ...
-                    tSpan, initCond, options);
+                    tSpan, KidArrSFM.InitCond, options);
 
 % Extract results
 KidVelX = reshape(y(:,               1:   KidArrSFM.N)', KidArrSFM.N, []);
@@ -256,14 +54,13 @@ KidArrSFM.ActualVel = [KidVelX(:,end),  KidVelY(:,end)];
 
 
 %% Shift the estimated path into the known previous position
-% We start from known initial starting position. Based on its estimate, we
-% obtain the forces and the path. This then needs to be shifted into the
-% known position to obtain our next actual position
+% We start from known initial starting positions. Based on their estimate,
+% we obtain the forces and the paths. These then need to be shifted into
+% the known positions to obtain the actual real next positions
 
-if (params.Case == 1 && params.Subcase == 2) || (params.Case == 2) || ...
-            (params.Case == 3) 
+if params.WithEstimatedPos
     % The last actual known position is saved in the first two columns of
-    % ActualPos => compute translation in x and y between this and its estimate
+    % ActualPos => compute translation in x and y in comparison to its estimate
     XY_Distance = PrevActualPos - KidArrSFM.EstimatedPos;
     
     % These deviations now need to be applied to all points that create the
@@ -277,44 +74,10 @@ if (params.Case == 1 && params.Subcase == 2) || (params.Case == 2) || ...
     KidArrSFM.ActualPos = [KidPosX(:,end),  KidPosY(:,end)];
 end
 
+
 %% Plot the results
-figure(5), axis equal
-axis([1, Room.Width, 1, Room.Height]);
-xlabel('X Position');
-ylabel('Y Position');
-title('Shouting kids want their balloon');
+figure(1)
 subtitle(append('Case: ',num2str(params.Case),'.',num2str(params.Subcase)));
-
-% Plot balloon squares only at first function call
-if s == 1   
-    BalArrSFM.squarefig = zeros(1,BalArrSFM.N);
-    for i = 1:KidArrSFM.N
-        x_min_b = BalArrSFM.ActualPos(i,1) - 0.5*BalArrSFM.Edge; 
-        y_min_b = BalArrSFM.ActualPos(i,2) - 0.5*BalArrSFM.Edge;
-        x_max_b = BalArrSFM.Edge;
-        y_max_b = BalArrSFM.Edge;
-        
-        % hide them at first and reveal only once reached by a kid
-        BalArrSFM.squarefig(i) = rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], ...
-        'FaceColor', 'w');       
-        BalArrSFM.plotBalID(i) = text(BalArrSFM.ActualPos(i,1), BalArrSFM.ActualPos(i,2), num2str(BalArrSFM.ID(i)), ...
-        'HorizontalAlignment', 'center', 'Color','k', 'FontSize', BalArrSFM.Edge*10, 'Visible','off');        
-    end
-
-
-    for i = 1:KidArrSFM.N        
-        % starting position bigger and with number. Plot only once! BUT:
-        % s=1 is already the first step (actualpos~=initpos) => plot both
-        % in this instance.
-        rad = KidArrSFM.Radius;
-        x_min = KidArrSFM.InitPos(i,1) - rad;
-        y_min = KidArrSFM.InitPos(i,2) - rad;
-        KidArrSFM.circlefig(i) = rectangle('Position',[x_min,y_min,2*rad,2*rad],...
-            'Curvature',[1 1], 'FaceColor',KidArrSFM.Color(i,:));
-        text(KidArrSFM.InitPos(i,1), KidArrSFM.InitPos(i,2), num2str(KidArrSFM.ID(i)), ...
-            'HorizontalAlignment', 'center', 'Color','k', 'FontSize', rad*10);
-    end
-end
 
 
 % determine # of gobjects needed for plot
@@ -371,8 +134,7 @@ for i = 1:KidArrSFM.N
     KidArrSFM.circlefig(i) = rectangle('Position',[x_min,y_min,2*rad,2*rad],...
     'Curvature',[1 1], 'FaceColor',KidArrSFM.Color(i,:));   
 
-    if (params.Case == 1 && params.Subcase == 2) || (params.Case == 2) || ...
-            (params.Case == 3)
+    if params.WithEstimatedPos
         % plot also the estimated position for better understanding (debugging)
         x_e = KidArrSFM.EstimatedPos(i,1) - rad;
         y_e = KidArrSFM.EstimatedPos(i,2) - rad;

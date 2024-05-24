@@ -1,4 +1,4 @@
-function PlotMetrics(KidArray)
+function PlotMetrics(KidArrSFM,KidArray)
 % Summary: analyze the kids performances.
 % Description: plot the KPI's of the different cases to verify the validity of the social experiment.
 % KPI's: - Time until arrival at destination
@@ -12,10 +12,10 @@ function PlotMetrics(KidArray)
 
 %% Prepare data
 x = 1:KidArray.N;
-y1 = KidArray.TravelTime;
-y2 = KidArray.PathLength;
+y1 = KidArrSFM.TravelTime;
+y2 = KidArrSFM.PathLength;
 
-figure(6), clf
+figure, clf
 
 % Grouped bar chart with two y-axes for time and path length
 xlim([0.1, KidArray.N+0.9])
@@ -47,12 +47,12 @@ ax.YAxis(2).Color = "#A2142F";
 
 %% Compare the average velocity with desired one
 % Average velocity computed by total path length / travel time
-AvgVel = KidArray.PathLength ./ KidArray.TravelTime;
+AvgVel = KidArrSFM.PathLength ./ KidArrSFM.TravelTime;
     % problem of units still remains
 
 y3 = KidArray.DesiredVel;
 
-figure(7), clf
+figure, clf
 b3 = bar(x, AvgVel, 0.3);
 b3.FaceColor = "#7E2F8E";
 hold on
@@ -68,21 +68,24 @@ legend({'Actual vel (average)', 'Desired vel (max)'}, 'Location', 'best')
 
 %% Compare the direct/straight path distance (SPL) with the actual TPL
 % SPL computed by eucl norm of destination to initial position
-y4 = diag(pdist2(KidArray.Destinations, KidArray.InitPos));
-    % problem of units still remains
-% y2 = TPL
 
-figure(8), clf
-b4 = bar(x, y4, 0.3);
-b4.FaceColor = "#77AC30";
-hold on
-plot(x, y2, 'LineStyle', "none", 'LineWidth', 1, ...
-            'Marker', "diamond", 'Color', "#D95319")
+% !!!!!!!!! Doesn't work because we don't have the Destinations
 
-xlabel('Kids')
-ylabel('Distance [m]')
-title('Path length - direct vs actual')
-legend({'Direct/straight', 'Actual'}, 'Location', 'best')
+        % y4 = diag(pdist2(KidArray.Destinations, KidArray.InitPos));
+        %     % problem of units still remains
+        % % y2 = TPL
+        % 
+        % figure, clf
+        % b4 = bar(x, y4, 0.3);
+        % b4.FaceColor = "#77AC30";
+        % hold on
+        % plot(x, y2, 'LineStyle', "none", 'LineWidth', 1, ...
+        %             'Marker', "diamond", 'Color', "#D95319")
+        % 
+        % xlabel('Kids')
+        % ylabel('Distance [m]')
+        % title('Path length - direct vs actual')
+        % legend({'Direct/straight', 'Actual'}, 'Location', 'best')
 
 % !!! units m and cm
 

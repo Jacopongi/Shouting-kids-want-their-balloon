@@ -38,7 +38,11 @@ for k=1:length(SetUp.Time)-1
           % Distance Check and Measurement
           if (sqrt(sum((Sensor.Position(i,:) - Env.RefPosition).^2)) <= Sensor.Range - abs(randn(1)*Sensor.Sigma)) && (Sensor.Detect(i) == 0) 
                 Sensor.PosMeas(i,:) = Env.RefPosition + mvnrnd(Sensor.PosMu, Sensor.PosCov);
-                Sensor.Detect(i) = 1;
+                Sensor.Detect(i) = 1;  
+            
+                while Sensor.PosMeas(i,1) <= 0 || Sensor.PosMeas(i,1) >= Room.Width || Sensor.PosMeas(i,2) <= 0 || Sensor.PosMeas(i,2) >= Room.Height
+                   Sensor.PosMeas(i,:) = Env.RefPosition + mvnrnd(Sensor.PosMu, Sensor.PosCov);
+                end
           end
     end
     
