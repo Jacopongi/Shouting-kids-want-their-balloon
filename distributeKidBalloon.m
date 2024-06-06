@@ -1,4 +1,5 @@
-function [KidArray, BalloonArray] = distributeKidBalloon(numKid, numBal, Room, DistrType)
+function [KidArray, BalloonArray, params] = distributeKidBalloon(numKid, ...
+                                        numBal, Room, DistrType, params)
 % Summary: random distribution of a set of agents and objectives in a room.
 % Description: after the instation of the main characteristics of agents and objectives,
 % they are randomly distributed in the room paying attention to avoid walls and overlaps. 
@@ -29,6 +30,7 @@ KidArray.InitCond = zeros(4*numKid,1);
 BalloonArray.InitPos = zeros(numBal, 2);
 % - for the plots
 KidArray.circlefig = zeros(1,numKid);
+KidArray.text = zeros(1,numKid);
 BalloonArray.squarefig = zeros(1,numBal);
 BalloonArray.plotBalID = zeros(1,numBal);
 % - remember ID's (row where ID is saved) of kids that have arrived
@@ -48,8 +50,8 @@ BalloonArray.ID = (1:numBal)';
 
 % Bounds on velocity
 
-maxVel = 2.2;   % [m/s]     
-minVel = 0.5;   % [m/s]   
+maxVel = 2;%2.2;   % [m/s]     
+minVel = 1.5;%0.5;   % [m/s]   
 
 % Positions estimated by sensors 
 KidArray.EstimatedPos = zeros(numKid,2); 
@@ -241,29 +243,44 @@ KidArray.OldPos = KidArray.InitPos;
 BalloonArray.InitPos = BalloonArray.ActualPos;
 
 % Random x and y velocities
+% KidArray.DesiredVel = rand(numKid,1)*(maxVel-minVel) + minVel;
 KidArray.DesiredVel = rand(numKid,1)*(maxVel-minVel) + minVel;
 KidArray.ActualVel = zeros(numKid,2);
 
 % Figure 
 figure(1)
 axis equal
-axis([0 Room.Width 0 Room.Height])
+axis([-0.05*Room.Width 1.05*Room.Width -0.05*Room.Height 1.05*Room.Height])
+rectangle('Position', [0 0 Room.Width Room.Height])
 box on
+hold on
 xlabel('X Position');
 ylabel('Y Position');
 title('Shouting kids want their balloon');
+subtitle(append('Case: ',num2str(params.Case),'.',num2str(params.Subcase)));
+
 
 KidArray.Color = rand(numKid,3);
-for i = 1:numKid
-    x_min = KidArray.ActualPos(i,1) - KidArray.Radius;
-    y_min = KidArray.ActualPos(i,2) - KidArray.Radius;
-    radius_cur = KidArray.Radius;
-    KidArray.circlefig(i) = rectangle('Position',[x_min,y_min,2*radius_cur,2*radius_cur],...
-        'Curvature',[1 1], 'FaceColor',KidArray.Color(i,:));
-    text(KidArray.ActualPos(i,1), KidArray.ActualPos(i,2), num2str(KidArray.ID(i)), ...
-        'HorizontalAlignment', 'center', 'Color','k', 'FontSize', KidArray.Radius*15);
-end
+% if params.plotTrajEst
+    % plot initial positions bigger. those will stay forever to mark
+    % beginning of trajectory
+    % if not true, the actual positions are plotted to visualize the
+    % flocking behavior (see SFM2) => nicer for a video
+    for i = 1:numKid
+        x_min = KidArray.ActualPos(i,1) - KidArray.Radius;
+        y_min = KidArray.ActualPos(i,2) - KidArray.Radius;
+        radius_cur = KidArray.Radius;
+        KidArray.circlefig(i) = rectangle('Position',[x_min,y_min,2*radius_cur,2*radius_cur],...
+            'Curvature',[1 1], 'FaceColor',KidArray.Color(i,:));
+        KidArray.text(i) = text(KidArray.ActualPos(i,1), KidArray.ActualPos(i,2), num2str(KidArray.ID(i)), ...
+            'HorizontalAlignment', 'center', 'Color','k', 'FontSize', KidArray.Radius*15);
+    end
 
+% else
+%     % doesn't matter bc we'd delete them right after plotting anyway
+% end
+
+% initial plot of balloon position is done in both plot cases
 for i = 1:numBal
     x_min_b = BalloonArray.ActualPos(i,1) - 0.5*BalloonArray.Edge; 
     y_min_b = BalloonArray.ActualPos(i,2) - 0.5*BalloonArray.Edge;
@@ -283,5 +300,10 @@ for i = 1:numBal
 
 end
 
+% Save frames for the video
+if params.VideoFlag
+    frame = getframe(gcf);   % Capture the current frame 
+    params.frames{1} = frame;   
+end
 
 end

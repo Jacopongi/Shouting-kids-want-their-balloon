@@ -1,5 +1,5 @@
 function [EstimatedPos] = EstimatePosition(Array, Sensor, Room)
-% Summary: estimate the position in a room of a set of agents.
+% Summary: Estimates the position of a set of agents in a room.
 % Description: Position estimate is performed with a consensus algorithm
 % exploiting Metropolis-Hastings weighting. 
 % Uncertainties on estimation come from measuring systems (sensor) and
