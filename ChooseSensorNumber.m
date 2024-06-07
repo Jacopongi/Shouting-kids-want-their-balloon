@@ -1,11 +1,15 @@
 function [Sensor] = ChooseSensorNumber(min_SensorNum,max_SensorNum, Room)
-% Summary: compute the optimal number of sensors that minimizes the error in position estimation. 
+% Summary: compute the optimal number of sensors that minimizes the error
+% in position estimation. 
 % Description: Position estimation is performed on fixed reference positions. 
-% Estimates are shared to all sensors with a consensus algorithm exploiting Metropolis-Hastings weighting. 
+% Estimates are shared to all sensors with a consensus algorithm exploiting
+% Metropolis-Hastings weighting. 
 % Error is computed as the difference between estimates and actual positions.
-% Given a set of possible sensor numbers, performances are compared to guarantee the minimum error.
+% Given a set of possible sensor numbers, performances are compared to
+% guarantee the minimum error.
 
-% NOTE: Several plots are available (consensus algorithm results, sensors actively measuring the position, error plots).
+% NOTE: Several plots are available (consensus algorithm results, sensors
+% actively measuring the position, error plots).
 % They are left commentented to avoid extensive generation of images. 
 
 
@@ -383,33 +387,33 @@ Sensor.PosMeas = zeros(Sensor.Num, 2);
 % Plot the sensors inside the room
 distributeSensorsOnPerimeter(Sensor.Num, Room.Width, Room.Height, true);
 
-% Sensors with used positions plot 
-figure;
-axis equal;
-axis([-0.2*Room.Width 1.2*Room.Width -0.2*Room.Height 1.2*Room.Height])
-box on
-xlabel('x','FontSize',16)
-ylabel('y','FontSize',16)
-title('Sensors and Used Positions','FontSize',14)
-hold on;
-
-rectangle('Position', [0, 0, Room.Width, Room.Height], 'LineWidth', 2);
-
-for k=1:length(SetUp.Time)-1
-
-    Env.RefPosition = Env.Positions(k,:);
-    plot(Env.RefPosition(1), Env.RefPosition(2), 'go', 'MarkerSize', 10, 'MarkerFaceColor', 'b');
-        
-    for i = 1:Sensor.Num 
-            plot(Sensor.Position(i,1), Sensor.Position(i,2), 'ro', 'MarkerSize', 10, 'MarkerFaceColor', 'r');
-            text(Sensor.Position(i,1), Sensor.Position(i,2), num2str(i), 'HorizontalAlignment', 'center');
-            if (sqrt(sum((Sensor.Position(i,:) - Env.RefPosition).^2)) <= Sensor.Range)
-                % rectangle('Position', [Sensor.Position(i,1) - Sensor.Range, Sensor.Position(i,2) - Sensor.Range, ...
-                %                        Sensor.Range * 2, Sensor.Range * 2], ...
-                %          'Curvature',[1, 1], 'LineStyle','--');
-                plot([Sensor.Position(i,1), Env.RefPosition(1)], [Sensor.Position(i,2), Env.RefPosition(2)], 'LineStyle','-.');
-            end
-    end
-end
-hold off
+% % Sensors with used positions plot 
+% figure;
+% axis equal;
+% axis([-0.2*Room.Width 1.2*Room.Width -0.2*Room.Height 1.2*Room.Height])
+% box on
+% xlabel('x','FontSize',16)
+% ylabel('y','FontSize',16)
+% title('Sensors and Used Positions','FontSize',14)
+% hold on;
+% 
+% rectangle('Position', [0, 0, Room.Width, Room.Height], 'LineWidth', 2);
+% 
+% for k=1:length(SetUp.Time)-1
+% 
+%     Env.RefPosition = Env.Positions(k,:);
+%     plot(Env.RefPosition(1), Env.RefPosition(2), 'go', 'MarkerSize', 10, 'MarkerFaceColor', 'b');
+% 
+%     for i = 1:Sensor.Num 
+%             plot(Sensor.Position(i,1), Sensor.Position(i,2), 'ro', 'MarkerSize', 10, 'MarkerFaceColor', 'r');
+%             text(Sensor.Position(i,1), Sensor.Position(i,2), num2str(i), 'HorizontalAlignment', 'center');
+%             if (sqrt(sum((Sensor.Position(i,:) - Env.RefPosition).^2)) <= Sensor.Range)
+%                 % rectangle('Position', [Sensor.Position(i,1) - Sensor.Range, Sensor.Position(i,2) - Sensor.Range, ...
+%                 %                        Sensor.Range * 2, Sensor.Range * 2], ...
+%                 %          'Curvature',[1, 1], 'LineStyle','--');
+%                 plot([Sensor.Position(i,1), Env.RefPosition(1)], [Sensor.Position(i,2), Env.RefPosition(2)], 'LineStyle','-.');
+%             end
+%     end
+% end
+% hold off
 end
