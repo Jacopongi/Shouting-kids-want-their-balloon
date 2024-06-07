@@ -215,14 +215,26 @@ if callerFunction == "SFM2"
                             KidArrSFM.Destinations(i,2), Room);
                         if ~is_inside
                             % search for closest of the 7 options to the inside
-                            if exit == "top"
-                                KidArrSFM.Destinations(i,2) = KidArrSFM.Destinations(i,2) - 2;
+                            if exit == "top-right"
+                                KidArrSFM.Destinations(i,2) = 0.9*Room.Height;
+                                KidArrSFM.Destinations(i,1) = 0.9*Room.Width;
+                            elseif exit == "bottom-right"
+                                KidArrSFM.Destinations(i,2) = 0.1*Room.Height;
+                                KidArrSFM.Destinations(i,1) = 0.9*Room.Width;
+                            elseif exit == "bottom-left"
+                                KidArrSFM.Destinations(i,2) = 0.1*Room.Height;
+                                KidArrSFM.Destinations(i,1) = 0.1*Room.Width;
+                            elseif exit == "top-left"
+                                KidArrSFM.Destinations(i,2) = 0.9*Room.Height;
+                                KidArrSFM.Destinations(i,1) = 0.1*Room.Width;
+                            elseif exit == "top"
+                                KidArrSFM.Destinations(i,2) = 0.9*Room.Height;
                             elseif exit == "right"
-                                KidArrSFM.Destinations(i,1) = KidArrSFM.Destinations(i,1) - 2;
+                                KidArrSFM.Destinations(i,1) = 0.9*Room.Width;
                             elseif exit == "bottom"
-                                KidArrSFM.Destinations(i,2) = KidArrSFM.Destinations(i,2) + 2;
+                                KidArrSFM.Destinations(i,2) = 0.1*Room.Height;
                             elseif exit == "left"
-                                KidArrSFM.Destinations(i,1) = KidArrSFM.Destinations(i,1) + 2;
+                                KidArrSFM.Destinations(i,1) = 0.1*Room.Width;
                             end
                         end
         

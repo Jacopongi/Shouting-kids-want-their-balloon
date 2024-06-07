@@ -1,21 +1,30 @@
 function [inside,wall] = isInside(px,py,Room)
 % short function to check if a point lies inside
 % the rooms boundaries or not
-top = (py <= Room.Height-2.1);
-right = (px <= Room.Width-2.1);
-bottom = (py >= 2.1);
-left = (px >= 2.1);
+top =    (py >= 0.9*Room.Height);
+right =  (px >= 0.9*Room.Width);
+bottom = (py <= 0.1*Room.Height);
+left =   (px <= 0.1*Room.Width);
 
-inside = top && right && bottom && left;
+outside = top || right || bottom || left;
+inside = ~outside;
 
-if ~inside
-    if ~top
+if outside
+    if top && right
+        wall = "top-right";
+    elseif right && bottom
+        wall = "bottom-right";
+    elseif bottom && left
+        wall = "bottom-left";
+    elseif left && top
+        wall = "top-left";
+    elseif top
         wall = "top";
-    elseif ~right
+    elseif right
         wall = "right";
-    elseif ~bottom
+    elseif bottom
         wall = "bottom";
-    elseif ~left
+    elseif left
         wall = "left";
     end
 else
