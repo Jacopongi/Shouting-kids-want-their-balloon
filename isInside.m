@@ -1,6 +1,7 @@
 function [inside,wall] = isInside(px,py,Room)
-% short function to check if a point lies inside
-% the rooms boundaries or not
+% Summary: short function to check if a point lies inside
+%          the rooms boundaries or not
+
 top = (py <= Room.Height-2.1);
 right = (px <= Room.Width-2.1);
 bottom = (py >= 2.1);

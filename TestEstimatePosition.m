@@ -1,23 +1,32 @@
-function [EstimatedPos] = EstimatePosition(Array, Sensor, Room, TextFlag)
-% Summary: estimate the position in a room of a set of agents.
-% Description: position estimate is performed with a consensus algorithm
+function [Test] = TestEstimatePosition(Sensor, Room, gridnum)
+% Summary: estimate several reference positions for testing purpose.
+% Description: Reference positions are obtained with a grid.
+% Position estimate is performed with a consensus algorithm
 % exploiting Metropolis-Hastings weighting. 
-% Uncertainties on estimation come from measuring systems (sensor) and
+% Uncertainties on estimation come from measuring system (sensors) and
 % enviroment (added random noise). 
 % Error between estimates and actual positions are computed to evaluate performance.
 
-% NOTE: several plots are available but left commented to avoid over-generation of figures. 
+% Several plots are available but left commented for visualization ease.
 
-% Position Measurements
-EstimatedPos = zeros(Array.N, 2);
+% NOTE: 'gridnum' represents one dimension of the grid. Grid is symmetric.
+
+
+% Positions instantiation
+EstimatedPos = zeros(gridnum^2, 2);
 Env.RefPosition = zeros(1,2);
-UsedPos = zeros(Array.N, 2);
+UsedPos = zeros(gridnum^2, 2);
+
+% Grid
+xPos = linspace(0.1*Room.Width, 0.9*Room.Width,gridnum);
+yPos = linspace(0.1*Room.Height, 0.9*Room.Height,gridnum);
+Env.Positions = table2array(combinations(xPos, yPos));
 
 % Adding External noise (independent sources affecting each dimension)
-Env.NoiseCov = 0.5*randn(2);        % Env.NoiseCov = diag(rand(2,1));            
+Env.NoiseCov = 0.5 * randn(2);         % Env.NoiseCov = diag(rand(2,1));           
 % Alternative: Env.NoiseCov =  random('Poisson', 1, 2)*0.1;
 Env.NoiseCov = Env.NoiseCov'*Env.NoiseCov;       
-Sensor.PosCov = Sensor.PosCov + Env.NoiseCov;    % Remember Covariance_Total = Covariance_Sensor + Covariance_Noise
+Sensor.PosCov = Sensor.PosCov + Env.NoiseCov;    % Remember: Covariance_Total = Covariance_Sensor + Covariance_Noise
 
 % Sensors fields
 Sensor.PosMeas = zeros(Sensor.Num, 2);
@@ -29,15 +38,15 @@ Sensor.Cons.a = cell(1, Sensor.Num);
 Sensor.Cons.MsgNum = 10;
 
 % Errors 
-err_x = zeros(1, Array.N);
-err_y = zeros(1, Array.N);
+err_x = zeros(1, gridnum^2);
+err_y = zeros(1, gridnum^2);
 
 %% Simulation
 
-for k=1:Array.N
+for k=1:gridnum^2
 
-    Env.RefPosition = Array.ActualPos(k,:);
-    Est.error = mvnrnd(Sensor.PosMu, Sensor.PosCov, Sensor.Num);
+    Env.RefPosition = Env.Positions(k,:);
+    Test.error = 0.1 * mvnrnd(Sensor.PosMu, Sensor.PosCov, Sensor.Num);
 
     Sensor.Detect = zeros(Sensor.Num,1);
     Sensor.Cons.Adj = zeros(Sensor.Num, Sensor.Num);
@@ -46,24 +55,15 @@ for k=1:Array.N
     for i = 1:Sensor.Num
           % Distance Check and Measurement
           if (sqrt(sum((Sensor.Position(i,:) - Env.RefPosition).^2)) <= Sensor.Range - abs(randn(1)*Sensor.Sigma)) && (Sensor.Detect(i) == 0) 
-                Sensor.PosMeas(i,:) = Env.RefPosition + Est.error(i,:);
+                Sensor.PosMeas(i,:) = Env.RefPosition + Test.error(i,:);
                 Sensor.Detect(i) = 1;
-                
-                % If the estimate exits room borders, repeat the estimate
-                while Sensor.PosMeas(i,1) <= 0 || Sensor.PosMeas(i,1) >= Room.Width || ...
-                        Sensor.PosMeas(i,2) <= 0 || Sensor.PosMeas(i,2) >= Room.Height
-
-                        NewErr = mvnrnd(Sensor.PosMu, Sensor.PosCov);
-                        Est.error(i,:) = NewErr;
-                        Sensor.PosMeas(i,:) = Env.RefPosition + Est.error(i,:);
-                end 
           end
     end
 
     for i = 1:Sensor.Num 
         if Sensor.Detect(i)
             for j = 1:Sensor.Num
-                % Check the distance between sensors
+                % Check the distance between sensors        
                 % NOTE: They can talk only if they are in range!
 
                 if (sqrt(sum((Sensor.Position(i,:) - Sensor.Position(j,:)).^2)) <= Sensor.Range - abs(randn(1)*Sensor.Sigma)) ...
@@ -83,17 +83,17 @@ for k=1:Array.N
     for i=1:Sensor.Num
          % Consensus information to be shared
          if Sensor.Detect(i)
-                % Local estimate
-                Sensor.Cons.F{i} = Sensor.H'*inv(Sensor.PosCov)*Sensor.H;
-                Sensor.Cons.a{i} = Sensor.H'*inv(Sensor.PosCov)*Sensor.PosMeas(i,:)';
+            % Local estimate
+            Sensor.Cons.F{i} = Sensor.H'*inv(Sensor.PosCov)*Sensor.H;
+            Sensor.Cons.a{i} = Sensor.H'*inv(Sensor.PosCov)*Sensor.PosMeas(i,:)';
         end
     end
     
     % Consensus rounds
     StoreEst = zeros(Sensor.Num, Sensor.Cons.MsgNum+1, 2);
-    
+
     for i = 1:Sensor.Num
-        % Store estimate in the first column
+        % Store estimate in the first column 
         if Sensor.Detect(i)
             StoreEst(i,1,:) = inv(Sensor.Cons.F{i})*Sensor.Cons.a{i};
         end
@@ -127,7 +127,7 @@ for k=1:Array.N
     EstimatedPos(k,2) = mean(nonzeros(StoreEst(2:end,:,2)),"all");
 
     UsedPos(k,:) = Env.RefPosition;
-    Est.collect(:,:, k) = Est.error;
+    Test.collect(:,:, k) = Test.error;
   
     err_x(k) = EstimatedPos(k,1) - Env.RefPosition(1);
     err_y(k) = EstimatedPos(k,2) - Env.RefPosition(2);
@@ -193,9 +193,15 @@ for k=1:Array.N
     %}
 end
 
+% Save estimates and errors
+Test.EstimatedPos = EstimatedPos;
+Test.ReferencePos = Env.Positions;
+Test.err_x = err_x;
+Test.err_y = err_y;
+
 %% Errors analysis
 
-
+%{
 mean_err_x = mean(err_x);
 mean_err_y = mean(err_y);
 
@@ -205,27 +211,27 @@ std_err_y = std(err_y);
 max_err_x = max(abs(err_x));
 max_err_y = max(abs(err_y));
 
-rmse_x = rmse(Array.ActualPos(:,1), EstimatedPos(:,1));
-rmse_y = rmse(Array.ActualPos(:,2), EstimatedPos(:,2));
+rmse_x = rmse(Env.Positions(:,1), EstimatedPos(:,1));
+rmse_y = rmse(Env.Positions(:,2), EstimatedPos(:,2));
 
-if TextFlag
-    disp(' ')
-    disp('Errors in Position Estimation with Consensus Algorithm')
-    
-    disp(['The mean error on x coordinate is: ', num2str(mean_err_x, 3), ' m']);
-    disp(['The mean error on y coordinate is: ', num2str(mean_err_y, 3), ' m']);
-    
-    disp(['The standard deviation on x coordinate is: ', num2str(std_err_x, 3), ' m']);
-    disp(['The standard deviation on y coordinate is: ', num2str(std_err_y, 3), ' m']);
-     
-    disp(['The maximum error on x coordinate is: ', num2str(max_err_x, 3), ' m']);
-    disp(['The maximum error on y coordinate is: ', num2str(max_err_y, 3), ' m']);
-    
-    disp(['The root mean squared error on x coordinate is: ', num2str(rmse_x, 3), ' m']);
-    disp(['The root mean squared error on y coordinate is: ', num2str(rmse_y, 3), ' m']);
-end
+disp('-------------------------')
+disp('Errors of Position Estimation with Consensus Algorithm')
 
-%{
+disp(['The mean error on x coordinate is: ', num2str(mean_err_x, 3), ' m']);
+disp(['The mean error on y coordinate is: ', num2str(mean_err_y, 3), ' m']);
+
+disp(['The standard deviation on x coordinate is: ', num2str(std_err_x, 3), ' m']);
+disp(['The standard deviation on y coordinate is: ', num2str(std_err_y, 3), ' m']);
+ 
+disp(['The maximum error on x coordinate is: ', num2str(max_err_x, 3), ' m']);
+disp(['The maximum error on y coordinate is: ', num2str(max_err_y, 3), ' m']);
+
+disp(['The root mean squared error on x coordinate is: ', num2str(rmse_x, 3), ' m']);
+disp(['The root mean squared error on y coordinate is: ', num2str(rmse_y, 3), ' m']);
+
+disp('-------------------------')
+
+
 % Plot errors in x-position estimation
 figure;
 box on
@@ -234,8 +240,8 @@ xlabel('x','FontSize',16)
 ylabel('y','FontSize',16)
 title('Error of Position Estimation in X-coordinate','FontSize',14)
 hold on;
-plot(1:Array.N,err_x);
-% xticks(1:Array.N);
+plot(1:gridnum^2, err_x);
+% xticks(1:gridnum^2);
 hold off
  
 % Plot errors in y-position estimation
@@ -246,20 +252,39 @@ xlabel('x','FontSize',16)
 ylabel('y','FontSize',16)
 title('Error of Position Estimation in Y-coordinate','FontSize',14)
 hold on;
-plot(1:Array.N,err_y);
-% xticks(1:Array.N);
+plot(1:gridnum^2, err_y);
+% xticks(1:gridnum^2);
 hold off
-%}
 
-%{
 figure
 histogram(err_x);
 
 figure
+histogram(err_x,'Normalization','pdf')
+hold on
+x = sort(err_x);
+mu = mean(err_x);
+sigma = std(err_x);
+f = exp(-(x-mu).^2./(2*sigma^2))./(sigma*sqrt(2*pi));
+plot(x, f,'LineWidth', 1.5)
+hold off
+
+figure
 histogram(err_y);
+
+figure
+histogram(err_y,'Normalization','pdf')
+hold on
+y = sort(err_y);
+mu = mean(err_y);
+sigma = std(err_y);
+f = exp(-(y-mu).^2./(2*sigma^2))./(sigma*sqrt(2*pi));
+plot(y, f,'LineWidth', 1.5)
+hold off
 %}
 
-%% Sensors and all positions (actual and estimated ones)
+
+%% All sensors and positions (actual and estimated ones)
 
 % figure;
 % axis equal;
@@ -272,7 +297,7 @@ histogram(err_y);
 % 
 % rectangle('Position', [0, 0, Room.Width, Room.Height], 'LineWidth', 2);
 % 
-% for k=1:Array.N
+% for k=1:gridnum^2
 % 
 %     Env.RefPosition = UsedPos(k,:);
 %     plot(Env.RefPosition(1), Env.RefPosition(2), '+', 'MarkerSize', 10, 'linewidth', 0.5, 'DisplayName','Actual Position');
@@ -288,7 +313,6 @@ histogram(err_y);
 % end
 % 
 % hold off
-
 
 
 end

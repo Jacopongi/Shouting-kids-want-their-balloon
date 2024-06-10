@@ -9,6 +9,7 @@ function [KidArray, BalloonArray, params] = distributeKidBalloon(numKid, ...
 %                                     [2] - Grid-Grid Distribution
 %                                     [3] - Grid-Arc Distribution 
 %                                     [4] - Circular Distribution
+%                                     [5] - Block-Triangle Distribution
 
 KidArray.N = numKid;
 BalloonArray.N = numBal;
@@ -49,9 +50,8 @@ KidArray.ID = (1:numKid)';
 BalloonArray.ID = (1:numBal)';
 
 % Bounds on velocity
-
-maxVel = 2;%2.2;   % [m/s]     
-minVel = 1.5;%0.5;   % [m/s]   
+maxVel = 2;     %2.2;   % [m/s]     
+minVel = 1.5;   %0.5;   % [m/s]   
 
 % Positions estimated by sensors 
 KidArray.EstimatedPos = zeros(numKid,2); 
@@ -145,7 +145,9 @@ elseif(DistrType == 2)
         KFullPos = table2array(combinations(KFullxPos, KFullyPos));
         KRemPos = table2array(combinations(KRemxPos, KRemyPos));
         KidArray.ActualPos = cat(1, KFullPos, KRemPos);
+        KidArray.ActualPos = flip(KidArray.ActualPos);
         
+        % GRID Starting Positions
         BFullColumnNum = fix(BalloonArray.N / gridnum);
         BRem = rem(BalloonArray.N, gridnum);
         BFullxPos = linspace( (1-0.1*BFullColumnNum), 0.95, BFullColumnNum );
@@ -164,25 +166,26 @@ elseif(DistrType == 2)
         ScaleFactor = 0.1; % Note! Between 0 and 1!
                            % Needed to avoid generation on the walls
         
-        KidArray.ActualPos(:,1) = ScaleFactor * Room.Width + KidArray.ActualPos(:,1) * (1- 2*ScaleFactor) * Room.Width;
-        KidArray.ActualPos(:,2) = ScaleFactor * Room.Height + KidArray.ActualPos(:,2) * (1-2*ScaleFactor) * Room.Height;
+        KidArray.ActualPos(:,1) = ScaleFactor * Room.Width + KidArray.ActualPos(:,1) * (1 - 2*ScaleFactor) * Room.Width;
+        KidArray.ActualPos(:,2) = ScaleFactor * Room.Height + KidArray.ActualPos(:,2) * (1 - 2*ScaleFactor) * Room.Height;
         
-        BalloonArray.ActualPos(:,1) = ScaleFactor * Room.Width + BalloonArray.ActualPos(:,1) * (1-2*ScaleFactor) * Room.Width;
+        BalloonArray.ActualPos(:,1) = ScaleFactor * Room.Width + BalloonArray.ActualPos(:,1) *(1-2*ScaleFactor) * Room.Width;
         BalloonArray.ActualPos(:,2) = ScaleFactor * Room.Height + BalloonArray.ActualPos(:,2) * (1-2*ScaleFactor) * Room.Height;
-
+        
 elseif(DistrType == 3)
         
         % GRID Starting Positions
         gridnum = 5;
         KFullColumnNum = fix(KidArray.N / gridnum);
         KRem = rem(KidArray.N, gridnum);
-        KFullxPos = linspace(0.1, 0.1*KFullColumnNum, KFullColumnNum );
+        KFullxPos = linspace(0.1, 0.13*KFullColumnNum, KFullColumnNum );
         KFullyPos = linspace(0.1, 0.9, gridnum);
-        KRemxPos = linspace(0.1*(KFullColumnNum+1), 0.1*(KFullColumnNum+1), 1);
+        KRemxPos = linspace(0.13*(KFullColumnNum+1), 0.13*(KFullColumnNum+1), 1);
         KRemyPos = linspace(0.1, 0.9, KRem);
         KFullPos = table2array(combinations(KFullxPos, KFullyPos));
         KRemPos = table2array(combinations(KRemxPos, KRemyPos));
         KidArray.ActualPos = cat(1, KFullPos, KRemPos);
+        KidArray.ActualPos = flip(KidArray.ActualPos);
 
         ScaleFactor = 0.1; % Note! Between 0 and 1!
                            % Needed to avoid generation on the walls
@@ -205,6 +208,7 @@ elseif(DistrType == 3)
 
 elseif(DistrType == 4)
        
+        % CIRCULAR Starting Positions
         ak = linspace(0, 2*pi, KidArray.N+1);
         KidArray.ActualPos = zeros(numKid,2);
         BalloonArray.ActualPos = zeros(numBal,2);
@@ -234,6 +238,50 @@ elseif(DistrType == 4)
             BalloonArray.ActualPos(i,:) = [xi yi];
         end
 
+elseif(DistrType == 5)
+
+        % GRID Starting Positions
+        gridnum = 4;
+        KFullColumnNum = fix(KidArray.N / gridnum);
+        KRem = rem(KidArray.N, gridnum);
+        KFullxPos = linspace(0.1, 0.1*KFullColumnNum, KFullColumnNum );
+        KFullyPos = linspace(0.3, 0.7, gridnum);
+        KRemxPos = linspace(0.1*(KFullColumnNum+1), 0.1*(KFullColumnNum+1), 1);
+        KRemyPos = linspace(0.4, 0.6, KRem);
+        KFullPos = table2array(combinations(KFullxPos, KFullyPos));
+        KRemPos = table2array(combinations(KRemxPos, KRemyPos));
+        KidArray.ActualPos = cat(1, KFullPos, KRemPos);
+    
+        % TRIANGULAR Starting Positions    
+        L = 0.5;    % Length of triangle edge (equilateral triangle)
+        A = [0, 0];
+        B = [L, 0];
+        C = [L/2, L * sqrt(3)/2];
+
+        % Rotation matrix for 90 degrees counterclockwise
+        R = [sqrt(3)/2, 1/2; -1/2, sqrt(3)/2];
+        A = (R * A')';
+        B = (R * B')';
+        C = (R * C')';
+        
+        % Distribute points on the edges of the triangle
+        points = distributeTriangle(A, B, C, BalloonArray.N);
+        BalloonArray.ActualPos = points;
+
+        ScaleFactor = 0.1; % Note! Between 0 and 1!
+                           % Needed to avoid generation on the walls
+        
+        KidArray.ActualPos(:,1) = ScaleFactor * Room.Width + KidArray.ActualPos(:,1) * (1 - 2*ScaleFactor) * Room.Width;
+        KidArray.ActualPos(:,2) = ScaleFactor * Room.Height + KidArray.ActualPos(:,2) * (1 - 2*ScaleFactor) * Room.Height;
+        
+        BalloonArray.ActualPos(:,1) = BalloonArray.ActualPos(:,1) * (1 - 5*ScaleFactor) * Room.Width + 0.6 * Room.Width; 
+        BalloonArray.ActualPos(:,2) = BalloonArray.ActualPos(:,2) * (1 - 5*ScaleFactor) * Room.Height + 0.5 * Room.Height;
+        A(1) = A(1) * (1 - 5*ScaleFactor) * Room.Width + 0.6 * Room.Width;
+        A(2) = A(2) * (1 - 5*ScaleFactor) * Room.Height + 0.5 * Room.Height;
+        B(1) = B(1) * (1 - 5*ScaleFactor) * Room.Width + 0.6 * Room.Width;
+        B(2) = B(2) * (1 - 5*ScaleFactor) * Room.Height + 0.5 * Room.Height;
+        C(1) = C(1) * (1 - 5*ScaleFactor) * Room.Width + 0.6 * Room.Width;
+        C(2) = C(2) * (1 - 5*ScaleFactor) * Room.Height + 0.5 * Room.Height;
 end
 
 
@@ -243,7 +291,6 @@ KidArray.OldPos = KidArray.InitPos;
 BalloonArray.InitPos = BalloonArray.ActualPos;
 
 % Random x and y velocities
-% KidArray.DesiredVel = rand(numKid,1)*(maxVel-minVel) + minVel;
 KidArray.DesiredVel = rand(numKid,1)*(maxVel-minVel) + minVel;
 KidArray.ActualVel = zeros(numKid,2);
 
@@ -262,10 +309,9 @@ subtitle(append('Case: ',num2str(params.Case),'.',num2str(params.Subcase)));
 
 KidArray.Color = rand(numKid,3);
 % if params.plotTrajEst
-    % plot initial positions bigger. those will stay forever to mark
-    % beginning of trajectory
-    % if not true, the actual positions are plotted to visualize the
-    % flocking behavior (see SFM2) => nicer for a video
+    % Plot initial positions bigger. 
+    % Those will stay forever to mark beginning of trajectory.
+    % If not true, actual positions are plotted to visualize flocking behavior.
     for i = 1:numKid
         x_min = KidArray.ActualPos(i,1) - KidArray.Radius;
         y_min = KidArray.ActualPos(i,2) - KidArray.Radius;
@@ -275,9 +321,6 @@ KidArray.Color = rand(numKid,3);
         KidArray.text(i) = text(KidArray.ActualPos(i,1), KidArray.ActualPos(i,2), num2str(KidArray.ID(i)), ...
             'HorizontalAlignment', 'center', 'Color','k', 'FontSize', KidArray.Radius*15);
     end
-
-% else
-%     % doesn't matter bc we'd delete them right after plotting anyway
 % end
 
 % initial plot of balloon position is done in both plot cases
@@ -292,13 +335,16 @@ for i = 1:numBal
         'FaceColor',bcolor);
     else 
         BalloonArray.squarefig(i) = rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], ...
-        'FaceColor','w');       % keep them secret/white at first,   KidArray.Color(i,:));
+        'FaceColor',  KidArray.Color(i,:)); % 'w');       % keep them secret/white at first!   KidArray.Color(i,:));
     end
 
     BalloonArray.plotBalID(i) = text(BalloonArray.ActualPos(i,1), BalloonArray.ActualPos(i,2), num2str(BalloonArray.ID(i)), ...
-        'HorizontalAlignment', 'center', 'Color','k', 'FontSize', BalloonArray.Edge*10, 'Visible','off');
+        'HorizontalAlignment', 'center', 'Color','k', 'FontSize', BalloonArray.Edge*10, 'Visible','on');
 
 end
+ 
+% If DistrType=5 a cool triangle is plotted with this command 
+% patch([A(1), B(1), C(1)], [A(2), B(2), C(2)], 'blue', 'FaceAlpha', 0.1);
 
 % Save frames for the video
 if params.VideoFlag

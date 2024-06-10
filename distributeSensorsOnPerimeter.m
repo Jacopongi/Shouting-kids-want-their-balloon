@@ -1,6 +1,6 @@
 function SensorsPosition = distributeSensorsOnPerimeter(numSensors, rectWidth, rectHeight, PlotTag)
 % Summary: given a set of sensors, they are uniformly distributed on the walls of the room.
-% Description: According to the number of sensors to be positioned and room dimensions,
+% Description: according to the number of sensors to be positioned and room dimensions,
 % angular space is divided in equal slices.
 % Sensors are positioned in the intersections between cut lines and walls. 
 % A plot is available for visualization.
@@ -31,24 +31,24 @@ for i = 1:numSensors
 end
 
 % Room with sensors plot
-% if PlotTag  
-%     figure;
-%     axis equal;
-%     axis([-0.2*rectWidth 1.2*rectWidth -0.2*rectHeight 1.2*rectHeight])
-%     box on
-%     xlabel('x','FontSize',16)
-%     ylabel('y','FontSize',16)
-%     title('Sensors on the wall','FontSize',14)
-%     hold on;
-% 
-%     % Room
-%     rectangle('Position', [0, 0, rectWidth, rectHeight], 'LineWidth', 2);
-% 
-%     % Sensors
-%     for i = 1:numSensors
-%         plot(SensorsPosition(i,1), SensorsPosition(i,2), 'ro', 'MarkerSize', 10, 'MarkerFaceColor', 'r');
-%     end
-%     hold off;
-% end
+if PlotTag  
+    figure;
+    axis equal;
+    axis([-0.2*rectWidth 1.2*rectWidth -0.2*rectHeight 1.2*rectHeight])
+    box on
+    xlabel('x','FontSize',16)
+    ylabel('y','FontSize',16)
+    title('Sensors on the wall','FontSize',14)
+    hold on;
+
+    % Room
+    rectangle('Position', [0, 0, rectWidth, rectHeight], 'LineWidth', 2);
+
+    % Sensors
+    for i = 1:numSensors
+        plot(SensorsPosition(i,1), SensorsPosition(i,2), 'ro', 'MarkerSize', 10, 'MarkerFaceColor', 'r');
+    end
+    hold off;
+end
 
 end

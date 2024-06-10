@@ -38,7 +38,7 @@ callerFunction = stack(2).name;
 
 if params.NumSFMExec == 1
     % First estimation of the initial starting position
-    KidArrSFM.EstimatedPos = EstimatePosition(KidArrSFM, Sensor, Room);
+    KidArrSFM.EstimatedPos = EstimatePosition(KidArrSFM, Sensor, Room, false);
 end
 
 
@@ -301,7 +301,7 @@ if callerFunction == "SKWTB_main"
         % The updated positions that we obtain from the SFM are the new
         % actual positions after we've shifted the initial
         % in these cases we need to estimate t
-        KidArrSFM.EstimatedPos = EstimatePosition(KidArrSFM, Sensor, Room);
+        KidArrSFM.EstimatedPos = EstimatePosition(KidArrSFM, Sensor, Room, false);
     end
 
     %% Save previous positions
@@ -601,10 +601,12 @@ if callerFunction == "SKWTB_main"
                 if (ID_KidsArrived(h) == ID_Bal2Check)
 
                     if params.print_flag
-                        fprintf("Kids that have reached their balloon: ");
-                        params.print_flag = 0;
+                        %fprintf("Kids that have reached their balloon: ");
+                        fprintf("I'm kid number ")
+                        % params.print_flag = 0;
                     end
-                    fprintf("%d ", ID_KidsArrived(h));
+                    fprintf("%d and I've reached my balloon. Yippee!", ID_KidsArrived(h));
+                    fprintf("\n");
 
                     % plot the arrived kid again
                     if ~params.plotTrajEst
