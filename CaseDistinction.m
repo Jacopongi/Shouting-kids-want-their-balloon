@@ -96,13 +96,13 @@ if callerFunction == "SFM2"
             % kids send messages to the others (as a first step send to all others)
             % => X reaches Y, lets all others know about Y => Y goes to Y, all
             % others ignore/avoid Y
-            
+            %
             % First step is the same: see above
-            
+            %
             % Since we've already set destinations in the main we don't want to
             % overwrite them now, we just want to add the closest balloon to
             % those kids that don't have an updated destination
-    
+            %
             % distances = pdist2(KidArrSFM.ActualPos, BalArrSFM.ActualPos); % InitPos
             % [~, currentGoal] = min(distances, [], 2);   % currentGoal contains ID!
             % 
@@ -251,12 +251,134 @@ if callerFunction == "SFM2"
                 end
             end    
     
-        KidArrSFM.InitCond = [KidArrSFM.ActualVel(:); KidArrSFM.EstimatedPos(:)];
+            KidArrSFM.InitCond = [KidArrSFM.ActualVel(:); KidArrSFM.EstimatedPos(:)];
         
         elseif params.Subcase == 2
-        % !!! ADD CASE 3.2 !!!
-        end
+        % Random flock movement
+        % choose the next random position according to the same procedure
+        % from case 3.1
+            flockPos = mean(KidArrSFM.ActualPos,1);
+            if params.NumSFMExec == 1 %s==1
+                % set first destination to the CoM of all kids to form flock.
+                % Remember that rows are height of room    
+                for i = 1:KidArrSFM.N              
+                    KidArrSFM.Destinations(i,:) = flockPos;
+                end
+            else   
+                prevDes = mean(KidArrSFM.Destinations(find(ismember( ...
+                    KidArrSFM.ID,find(KidArrSFM.FlagPosReceived==0))),:),1);
 
+                % keep targeting the previous position if not yet explored by at least one kid
+                if ~any(find(all(abs(KidArrSFM.ActualPos - KidArrSFM.Destinations)<[1 1],2)))
+                    newDest = prevDes;
+                else
+                    % set destination randomly around the kids                                 
+                    % angle = 2*pi*rand;  % Generate a random angle   
+                    % radius = Room.Width/3;  % radius
+                    % new_x = flockPos(1) + radius*cos(angle); 
+                    % new_y = flockPos(2) + radius*sin(angle);            
+                    % newDest = [new_x, new_y];
+                    % 
+
+                    % is_inside = 0;
+                    % while is_inside == 0
+                    % 
+                        % direc = normalize(prevDes-flockPos, 'norm', 2);
+                        % ang2hor = atan2(direc(:, 2), direc(:, 1));
+                        % angles = linspace(-0.25*pi, 0.25*pi, 7);       
+                        % rot_mat = [cos(ang2hor), -sin(ang2hor); ...
+                        %            sin(ang2hor),  cos(ang2hor)];
+                        % r_ang = randi(7);   % randomly choose one of the 7 new directions
+                        % radius = Room.Width/6;  % radius/look-ahead
+                        % xb = radius*cos(angles(r_ang));  
+                        % yb = radius*sin(angles(r_ang));
+                        % 
+                        % [xy] = rot_mat*[xb;yb]; % rotate into base frame
+                        % newDest = flockPos + [xy(1), xy(2)];
+
+                        % [is_inside,~] = isInside(newDest(1), newDest(2), Room);
+                    % end
+
+                    direc = normalize(prevDes-flockPos, 'norm', 2);
+                    ang2hor = atan2(direc(:, 2), direc(:, 1));
+                    angles = linspace(-0.25*pi, 0.25*pi, 7);       
+                    rot_mat = [cos(ang2hor), -sin(ang2hor); ...
+                               sin(ang2hor),  cos(ang2hor)];
+                    radius = Room.Width/6;  % radius/look-ahead
+                    choosePos = 1;
+                    while choosePos                        
+                        xb = radius*cos(angles);  
+                        yb = radius*sin(angles);    
+                        [xy] = rot_mat*[xb;yb]; % rotate into base frame
+                        newDest = flockPos + [xy(1,:)', xy(2,:)'];
+                        for i = 1:7
+                            [is_inside,~] = isInside(newDest(i,1), newDest(i,2), Room);
+                            if ~is_inside
+                                if i<=3
+                                    % rotate to right by a little
+                                    angles = angles + 0.1*pi;
+                                else
+                                    % rotate to left
+                                    angles = angles - 0.1*pi;
+                                end
+                                break
+                            end
+                            choosePos = 0;
+                        end
+                    end
+                    
+                    newDest = newDest(randi(7),:); % randomly choose one of the 7 new directions
+
+    
+                    % check if new point lays within room's borders
+                    % [is_inside,exit] = isInside(newDest(1), newDest(2), Room);
+                    % if ~is_inside
+                    %     % search for closest of the 7 options to the inside
+                    %     if exit == "top-right"
+                    %         newDest(2) = 0.9*Room.Height;
+                    %         newDest(1) = 0.9*Room.Width;
+                    %     elseif exit == "bottom-right"
+                    %         newDest(2) = 0.1*Room.Height;
+                    %         newDest(1) = 0.9*Room.Width;
+                    %     elseif exit == "bottom-left"
+                    %         newDest(2) = 0.1*Room.Height;
+                    %         newDest(1) = 0.1*Room.Width;
+                    %     elseif exit == "top-left"
+                    %         newDest(2) = 0.9*Room.Height;
+                    %         newDest(1) = 0.1*Room.Width;
+                    %     elseif exit == "top"
+                    %         newDest(2) = 0.9*Room.Height;
+                    %     elseif exit == "right"
+                    %         newDest(1) = 0.9*Room.Width;
+                    %     elseif exit == "bottom"
+                    %         newDest(2) = 0.1*Room.Height;
+                    %     elseif exit == "left"
+                    %         newDest(1) = 0.1*Room.Width;
+                    %     end
+                    % end
+
+                    newDest
+                end
+
+                
+
+                for i = 1:KidArrSFM.N
+                    if ~KidArrSFM.FlagPosReceived(KidArrSFM.ID(i))
+                        % assign the next flock target to all kids that are
+                        % still in search of their balloon
+                        KidArrSFM.Destinations(i,:) = newDest;
+    
+                    elseif KidArrSFM.FlagPosReceived(KidArrSFM.ID(i))
+                        % do nothing, correct final destination has been
+                        % set in main
+    
+                    end
+                end
+
+            end
+
+            KidArrSFM.InitCond = [KidArrSFM.ActualVel(:); KidArrSFM.EstimatedPos(:)];
+        end
 
     %% CASE 4
 
@@ -381,12 +503,13 @@ if callerFunction == "SKWTB_main"
             fprintf("%d ", ID_KidsArrived');
 
 
-            % Reveal color and ID of the balloon      
-            for i = 1:length(ID_KidsArrived)
-                set(BalArrSFM.plotBalID(ID_KidsArrived(i)), 'Visible', 'on');
-                set(BalArrSFM.squarefig(ID_KidsArrived(i)), 'FaceColor', ...
-                    KidArrSFM.Color((find(ismember(KidArrSFM.ID,ID_KidsArrived(i)))),:));   
-            end  
+            % Reveal color and ID of the balloon   => here not because they
+            % know where to go
+            % for i = 1:length(ID_KidsArrived)
+            %     set(BalArrSFM.plotBalID(ID_KidsArrived(i)), 'Visible', 'on');
+            %     set(BalArrSFM.squarefig(ID_KidsArrived(i)), 'FaceColor', ...
+            %         KidArrSFM.Color((find(ismember(KidArrSFM.ID,ID_KidsArrived(i)))),:));   
+            % end  
             
 
             fields = fieldnames(KidArrSFM);
