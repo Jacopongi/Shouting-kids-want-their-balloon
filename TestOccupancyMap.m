@@ -211,10 +211,12 @@ else
     for i = 1:5
         weight_dist(idxDist(i)) = i;
     end
-    weight = weight_size + weight_dist;
+    weight = weight_size .* weight_dist;
     [~,idx] = min(weight);
     nextPos = candidates(idx,:);
+
     disp(['Now, we want to go to [' num2str(nextPos(1)) ' ' num2str(nextPos(2)) ']!'])
+
 end
 
 end

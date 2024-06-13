@@ -18,10 +18,12 @@ disp(' ')
 
 %% Parameter initialization
 
+
 % Number of Kids 
 numKid = 8;        
 % Number of Balloon
 numBal = 8;
+
 
 % NOTE1: choose an equal number of kids and balloons!
 % You want to make sure that everyone is happy at the end, right?
@@ -41,8 +43,8 @@ Room.Width = MaxNum * 1.5;  % [m]
 Room.Height = MaxNum ;      % [m]  
 
 % Secret parameters that make the world correctly functioning
-params.t = 0.5;
 params.plotTrajEst = 1;      % if 0 plot actual position
+
 params.NumSFMExec = 0;
 params.flagForce = 1;        % Activate/deactivate repulsive force of non-targeted balloons
 params.print_flag = 1;
@@ -51,6 +53,7 @@ params.VideoFlag = 1;
 params.frames = cell(1,1);
 params.text = 1;
 run = 1;
+
 
 %% CASE SELECTION 
 
@@ -200,7 +203,7 @@ if params.VideoFlag
     end
 
     v = VideoWriter(filename);   
-    v.FrameRate = 15;                 
+    v.FrameRate = 10;                 
     open(v);                        
 
     % Write captured frames to VideoWriter

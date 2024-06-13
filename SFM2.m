@@ -303,6 +303,7 @@ function dydt = socialForceModel(t, y, KidArrSFM, BalArrSFM, Room, params)
     %% Own addition, Repulsion from balloons not targeted by a kid
     % prevents that kids k cross/run over a balloon x which is not its target.
     % Repulsive term prevents this 'physical constraint'
+    % important to do so only with those that have been revealed yet
     f_kx = zeros(KidArrSFM.N,2);
 
     if params.flagForce        
@@ -331,16 +332,43 @@ function dydt = socialForceModel(t, y, KidArrSFM, BalArrSFM, Room, params)
 
     f_k = f_k0 + f_kj + f_kx + f_kb + f_ka + noise;
 
-    % limit maximum value to prevent rocket launch (rebounce)    
-    if any((f_kj+f_ka) > 1.5)
-        % disp("!")
+    
+    % limit maximum value to prevent rocket launch (rebounce) 
+    % from borders
+    if any(abs((f_kb)) > 1.5)
+        for k = 1:KidArrSFM.N
+            if abs(f_kb(k,1)) > 1.5
+                f_kb(k,1) = (f_kb(k,1))./abs(f_kb(k,1)) * 1.5;
+            end
+            if abs(f_kb(k,2)) > 1.5
+                f_kb(k,2) = (f_kb(k,2))./abs(f_kb(k,2)) * 1.5;
+            end
+        end
+        f_k = f_k0 + f_kj + f_ka + f_kx + f_kb + noise;
+    end
+
+    %from balloons
+    if any(abs((f_kx)) > 1.5)
+        for k = 1:KidArrSFM.N
+            if abs(f_kx(k,1)) > 1.5
+                f_kx(k,1) = (f_kx(k,1))./abs(f_kx(k,1)) * 1.5;
+            end
+            if abs(f_kx(k,2)) > 1.5
+                f_kx(k,2) = (f_kx(k,2))./abs(f_kx(k,2)) * 1.5;
+            end
+        end
+        f_k = f_k0 + f_kj + f_ka + f_kx + f_kb + noise;
+    end
+
+    % for repulsion and attraction    
+    if any(abs((f_kj+f_ka)) > 1.5)
         f_rep_att = zeros(size(f_kj));
         for k = 1:KidArrSFM.N
-            if (f_kj(k,1)+f_ka(k,1)) > 1.5
+            if abs((f_kj(k,1)+f_ka(k,1))) > 1.5
                 f_rep_att(k,1) = ...
                     (f_kj(k,1)+f_ka(k,1))./abs(f_kj(k,1)+f_ka(k,1)) * 1.5;
             end
-            if (f_kj(k,2)+f_ka(k,2)) > 1.5
+            if abs((f_kj(k,2)+f_ka(k,2))) > 1.5
                 f_rep_att(k,2) = ...
                     (f_kj(k,2)+f_ka(k,2))./abs(f_kj(k,2)+f_ka(k,2)) * 1.5;
             end

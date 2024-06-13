@@ -330,16 +330,29 @@ for i = 1:numBal
     x_max_b = BalloonArray.Edge;
     y_max_b = BalloonArray.Edge;
     if(i > height(KidArray.Color))
+        % this case doesn't work with the SFM and is thus never entered
         bcolor = rand(1,3);
         BalloonArray.squarefig(i) = rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], ...
         'FaceColor',bcolor);
     else 
-        BalloonArray.squarefig(i) = rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], ...
-        'FaceColor',  KidArray.Color(i,:)); % 'w');       % keep them secret/white at first!   KidArray.Color(i,:));
+
+        if params.Case == 1
+            BalloonArray.squarefig(i) = ...
+                rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], ...
+                            'FaceColor', KidArray.Color(i,:));
+        else
+            BalloonArray.squarefig(i) = ...
+                rectangle('Position',[x_min_b y_min_b x_max_b y_max_b], ...
+                            'FaceColor','w');       % keep them secret/white at first
+        end
     end
 
     BalloonArray.plotBalID(i) = text(BalloonArray.ActualPos(i,1), BalloonArray.ActualPos(i,2), num2str(BalloonArray.ID(i)), ...
-        'HorizontalAlignment', 'center', 'Color','k', 'FontSize', BalloonArray.Edge*10, 'Visible','on');
+        'HorizontalAlignment', 'center', 'Color','k', 'FontSize', BalloonArray.Edge*10, 'Visible','off');
+    if params.Case == 1
+        set(BalloonArray.plotBalID(i), 'Visible', 'on');
+    end
+
 
 end
  
