@@ -14,9 +14,9 @@ close all
 %% Parameter initialization
 
 % Number of Kids
-numKid = 6;
+numKid = 7;
 % Number of Balloon
-numBal = 6;
+numBal = 7;
 
 % MaxNum = max(numKid, numBal);
 MaxNum = numKid + numBal;
@@ -30,18 +30,17 @@ params.Case = 4;
 params.Subcase = 1;
 params.t = 0.5;
 
-params.plotTrajEst = 0; % if 0 plot actual position
+params.plotTrajEst = 1; % if 0 plot actual position
 params.NumSFMExec = 0;
 params.flagForce = 1;   % de-/activate the repulsive force of non-targeted balloons
 params.print_flag = 1;
 params.occupancyMap = zeros(5*Room.Height, 5*Room.Width); % !rows are height
-params.VideoFlag = 1;
+params.VideoFlag = 0;
 params.frames = cell(1,1);
 
 % 1=random, 2=grid-grid, 3=grid-arc, 4=circular
-distrPattern = 4;
+distrPattern = 3;
 
-run = 1;
 
 
 % Random or patterned positioning of kids and balloons inside the room
@@ -69,6 +68,8 @@ BalArrSFM = BalloonArray;
 
 
 %% Main section
+run = 1;
+
 while run
 
     % Call the Social Force Model
@@ -109,7 +110,7 @@ if params.VideoFlag
     end
 
     v = VideoWriter(filename);   
-    v.FrameRate = 15;                 
+    v.FrameRate = 10;                 
     open(v);                        
 
     % Write captured frames to VideoWriter

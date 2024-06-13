@@ -335,40 +335,40 @@ function dydt = socialForceModel(t, y, KidArrSFM, BalArrSFM, Room, params)
     
     % limit maximum value to prevent rocket launch (rebounce) 
     % from borders
-    if any((f_kb) > 1)
+    if any(abs((f_kb)) > 1.5)
         for k = 1:KidArrSFM.N
-            if f_kb(k,1) > 1
-                f_kb(k,1) = (f_kb(k,1))./abs(f_kb(k,1)) * 1;
+            if abs(f_kb(k,1)) > 1.5
+                f_kb(k,1) = (f_kb(k,1))./abs(f_kb(k,1)) * 1.5;
             end
-            if f_kb(k,2) > 1
-                f_kb(k,2) = (f_kb(k,2))./abs(f_kb(k,2)) * 1;
+            if abs(f_kb(k,2)) > 1.5
+                f_kb(k,2) = (f_kb(k,2))./abs(f_kb(k,2)) * 1.5;
             end
         end
         f_k = f_k0 + f_kj + f_ka + f_kx + f_kb + noise;
     end
 
     %from balloons
-    if any((f_kx) > 1)
+    if any(abs((f_kx)) > 1.5)
         for k = 1:KidArrSFM.N
-            if f_kx(k,1) > 1
-                f_kx(k,1) = (f_kx(k,1))./abs(f_kx(k,1)) * 1;
+            if abs(f_kx(k,1)) > 1.5
+                f_kx(k,1) = (f_kx(k,1))./abs(f_kx(k,1)) * 1.5;
             end
-            if f_kx(k,2) > 1
-                f_kx(k,2) = (f_kx(k,2))./abs(f_kx(k,2)) * 1;
+            if abs(f_kx(k,2)) > 1.5
+                f_kx(k,2) = (f_kx(k,2))./abs(f_kx(k,2)) * 1.5;
             end
         end
         f_k = f_k0 + f_kj + f_ka + f_kx + f_kb + noise;
     end
 
     % for repulsion and attraction    
-    if any((f_kj+f_ka) > 1.5)
+    if any(abs((f_kj+f_ka)) > 1.5)
         f_rep_att = zeros(size(f_kj));
         for k = 1:KidArrSFM.N
-            if (f_kj(k,1)+f_ka(k,1)) > 1.5
+            if abs((f_kj(k,1)+f_ka(k,1))) > 1.5
                 f_rep_att(k,1) = ...
                     (f_kj(k,1)+f_ka(k,1))./abs(f_kj(k,1)+f_ka(k,1)) * 1.5;
             end
-            if (f_kj(k,2)+f_ka(k,2)) > 1.5
+            if abs((f_kj(k,2)+f_ka(k,2))) > 1.5
                 f_rep_att(k,2) = ...
                     (f_kj(k,2)+f_ka(k,2))./abs(f_kj(k,2)+f_ka(k,2)) * 1.5;
             end

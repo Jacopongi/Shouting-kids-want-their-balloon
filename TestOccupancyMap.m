@@ -212,9 +212,9 @@ else
     for i = 1:5
         weight_dist(idxDist(i)) = i;
     end
-    weight = weight_size + weight_dist;
+    weight = weight_size .* weight_dist;
     [~,idx] = min(weight);
-    nextPos = candidates(idx,:)
+    nextPos = candidates(idx,:);
 end
 
 end
