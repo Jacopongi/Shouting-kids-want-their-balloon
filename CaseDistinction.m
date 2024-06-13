@@ -428,7 +428,7 @@ end
 
 %% All the stuff that happens after the last / before the next call to SFM
 
-if callerFunction == "SKWTB_main"
+if (callerFunction == "SKWTB_main") || (callerFunction == "runrun")
 
     %% Estimate positions of kids with sensors
     if params.WithEstimatedPos
