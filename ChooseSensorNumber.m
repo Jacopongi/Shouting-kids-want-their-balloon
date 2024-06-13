@@ -1,24 +1,24 @@
-function [Sensor] = ChooseSensorNumber(min_SensorNum,max_SensorNum, Room)
-% Summary: compute the optimal number of sensors that minimizes the error
-% in position estimation. 
-% Description: Position estimation is performed on fixed reference positions. 
-% Estimates are shared to all sensors with a consensus algorithm exploiting
-% Metropolis-Hastings weighting. 
+function [Sensor] = ChooseSensorNumber(min_SensorNum, max_SensorNum, Room)
+% Summary: compute the optimal number of sensors that minimizes the error in position estimation. 
+% Description: position estimation is performed on fixed reference positions. 
+% Estimates are shared to all sensors with a consensus algorithm exploiting Metropolis-Hastings weighting. 
 % Error is computed as the difference between estimates and actual positions.
-% Given a set of possible sensor numbers, performances are compared to
-% guarantee the minimum error.
+% Given a set of possible sensor numbers, performances are compared to guarantee the minimum error.
 
-% NOTE: Several plots are available (consensus algorithm results, sensors
-% actively measuring the position, error plots).
+% NOTE: Several plots are available (consensus algorithm results, sensors actively measuring the position, error plots).
 % They are left commentented to avoid extensive generation of images. 
 
 
 % Sensor parameters
-Sensor.Res = 1;
+Sensor.Res = 0.01;
 Sensor.Mu = 0;
 Sensor.Sigma = Sensor.Res * rand(1);
 Sensor.Range = min(Room.Width, Room.Height);
 Sensor.H = eye(2);
+
+Sensor.PosMu = zeros(2,1);
+Sensor.PosCov = 0.1 * rand(2,2);
+Sensor.PosCov = Sensor.PosCov'*Sensor.PosCov;
     
 % Errors storage
 Store.max_err_x = zeros(1, max_SensorNum - min_SensorNum);
@@ -26,24 +26,23 @@ Store.max_err_y = zeros(1, max_SensorNum - min_SensorNum);
 Store.mean_err_x = zeros(1, max_SensorNum - min_SensorNum);
 Store.mean_err_y = zeros(1, max_SensorNum - min_SensorNum);
 
+% Reference Positions
+gridnum = 4;
+xPos = linspace(0.1*Room.Width, 0.9*Room.Width,gridnum);
+yPos = linspace(0.1*Room.Height, 0.9*Room.Height,gridnum);
+Env.Positions = table2array(combinations(xPos, yPos));
+
 for sn = min_SensorNum:max_SensorNum
 
     Sensor.Num = sn;
     Sensor.Position = distributeSensorsOnPerimeter(Sensor.Num, Room.Width, Room.Height, false);
 
-    % Position Measurements
+    % Positions instantiation
     Env.RefPosition = zeros(1,2);
-    Sensor.PosMu = zeros(2,1);
-    Sensor.PosCov = rand(2,2);
-    Sensor.PosCov = Sensor.PosCov'*Sensor.PosCov;
+    UsedPos = zeros(gridnum^2, 2);
+
     Sensor.PosMeas = zeros(Sensor.Num, 2);
     Sensor.Detect = zeros(Sensor.Num, 1);
-
-    % Reference Positions
-    gridnum = 4;
-    xPos = linspace(0.1*Room.Width, 0.9*Room.Width,gridnum);
-    yPos = linspace(0.1*Room.Height, 0.9*Room.Height,gridnum);
-    Env.Positions = table2array(combinations(xPos, yPos));
     
     % Consensus structures
     Sensor.Cons.Adj = zeros(Sensor.Num, Sensor.Num); 
@@ -51,21 +50,19 @@ for sn = min_SensorNum:max_SensorNum
     Sensor.Cons.Degree = zeros(1, Sensor.Num);
     Sensor.Cons.F = cell(1, Sensor.Num);
     Sensor.Cons.a = cell(1, Sensor.Num);
-   
-    % Set-up and storage
-    SetUp.Dt = 1;                         % [s]
-    SetUp.Time = 0:SetUp.Dt:gridnum^2;    % [s]
-    UsedPos = zeros(length(SetUp.Time)-1, 2);
 
     % Errors 
-    err_x = zeros(1, length(SetUp.Time)-1);
-    err_y = zeros(1, length(SetUp.Time)-1);
+    err_x = zeros(1, gridnum^2);
+    err_y = zeros(1, gridnum^2);
     
     % Simulation
-    for k=1:length(SetUp.Time)-1
+    for k=1:gridnum^2
     
         Env.RefPosition = Env.Positions(k,:);
+
         Sensor.Detect = zeros(Sensor.Num,1);
+        Sensor.Cons.Adj = zeros(Sensor.Num, Sensor.Num);
+        Sensor.Cons.Degree = zeros(1, Sensor.Num);
     
         for i = 1:Sensor.Num
               % Distance Check and Measurement
@@ -73,16 +70,21 @@ for sn = min_SensorNum:max_SensorNum
                     Sensor.PosMeas(i,:) = Env.RefPosition + mvnrnd(Sensor.PosMu, Sensor.PosCov);
                     Sensor.Detect(i) = 1;
               end
+
+              while Sensor.PosMeas(i,1) <= 0 || Sensor.PosMeas(i,1) >= Room.Width || Sensor.PosMeas(i,2) <= 0 || Sensor.PosMeas(i,2) >= Room.Height
+                   Sensor.PosMeas(i,:) = Env.RefPosition + mvnrnd(Sensor.PosMu, Sensor.PosCov);
+              end
         end
     
-        % Network discovering
-        for i = 1:Sensor.Num              
-            for j = 1:Sensor.Num
-                % Check the distance between sensors
-                % They can talk only if they are in range
-                if (sqrt(sum((Sensor.Position(i,:) - Sensor.Position(j,:)).^2)) <= Sensor.Range - abs(randn(1)*Sensor.Sigma)) ...
-                        && not(j==i)
-                    Sensor.Cons.Adj(j,i) = 1;
+        for i = 1:Sensor.Num
+            if Sensor.Detect(i)
+                for j = 1:Sensor.Num
+                    % Check the distance between sensors
+                    % They can talk only if they are in range
+                    if (sqrt(sum((Sensor.Position(i,:) - Sensor.Position(j,:)).^2)) <= Sensor.Range - abs(randn(1)*Sensor.Sigma)) ...
+                            && not(j==i) && Sensor.Detect(j)
+                        Sensor.Cons.Adj(j,i) = 1;
+                    end
                 end
             end
         end
@@ -91,59 +93,32 @@ for sn = min_SensorNum:max_SensorNum
         for i = 1:Sensor.Num
             Sensor.Cons.Degree(i) = sum(Sensor.Cons.Adj(i,:));
         end
-        
+
         % Composite matrices and vectors
         for i=1:Sensor.Num
              % Consensus information to be shared
              if Sensor.Detect(i)
-                % Local estimate
-                Sensor.Cons.F{i} = Sensor.H'*inv(Sensor.PosCov)*Sensor.H;
-                Sensor.Cons.a{i} = Sensor.H'*inv(Sensor.PosCov)*Sensor.PosMeas(i,:)';
-            end
+                    % Local estimate
+                    Sensor.Cons.F{i} = Sensor.H'*inv(Sensor.PosCov)*Sensor.H;
+                    Sensor.Cons.a{i} = Sensor.H'*inv(Sensor.PosCov)*Sensor.PosMeas(i,:)';
+             end
         end
-        
+            
         % Consensus rounds
         StoreEst = zeros(Sensor.Num, Sensor.Cons.MsgNum+1, 2);
-        FloodComplete = 0;
-        FloodTag = zeros(1, Sensor.Num);
-    
+
         for i = 1:Sensor.Num
             % if we have a new measurement we store the estimate in the first column 
             if Sensor.Detect(i)
                 StoreEst(i,1,:) = inv(Sensor.Cons.F{i})*Sensor.Cons.a{i};
-                FloodTag(i) = 1;
-            else
-                Sensor.Cons.F{i} = zeros(2);
-                Sensor.Cons.a{i} = zeros(2,1);
             end
         end
-    
-        % Share information with all the sensors
-        while FloodComplete == 0
-            for i=1:Sensor.Num
-                if not(Sensor.Detect(i))
-                    for j=1:Sensor.Num
-                        if ( Sensor.Cons.Adj(i,j) ) && ( nnz(nonzeros(Sensor.Cons.F{j})) > 0)
-                            Sensor.Cons.F{i} = Sensor.Cons.F{j};
-                            Sensor.Cons.a{i} = Sensor.Cons.a{j};
-                            StoreEst(i,1,:) = inv(Sensor.Cons.F{i})*Sensor.Cons.a{i} + rand(1);
-                            FloodTag(i) = 1;
-                            break;
-                        end 
-                    end
-                end
-            end
-    
-            if all(FloodTag > 0.5)
-                        FloodComplete = 1;
-            end 
-        end
-            
+
         % Consensus algorithm
         for nMsg = 1:Sensor.Cons.MsgNum
                 F = Sensor.Cons.F;
                 a = Sensor.Cons.a;
-            
+                
                 % Average Consensus
                 for i=1:Sensor.Num
                     for j=1:Sensor.Num
@@ -157,14 +132,16 @@ for sn = min_SensorNum:max_SensorNum
                 end
     
                 for i=1:Sensor.Num
-                    StoreEst(i,nMsg+1,:) = inv(Sensor.Cons.F{i})*Sensor.Cons.a{i};
+                    if Sensor.Detect(i)
+                        StoreEst(i,nMsg+1,:) = inv(Sensor.Cons.F{i})*Sensor.Cons.a{i};
+                    end
                 end
         end
+    
+        UsedPos(k,:) = Env.RefPosition;
       
         err_x(k) = mean(nonzeros(StoreEst(2:end,:,1)),"all") - Env.RefPosition(1);
         err_y(k) = mean(nonzeros(StoreEst(2:end,:,2)),"all") - Env.RefPosition(2);
-    
-        UsedPos(k,:) = Env.RefPosition;
         
         % Plot the estimates at each time step as a function of the number of messages exchanged by the consensus protocol
         %{
@@ -303,7 +280,7 @@ for sn = min_SensorNum:max_SensorNum
         
 end
 
-%% Max and mean errors plots
+%% Maximum and mean errors plots
 
 %{
 % Plot max errors in x-position estimation
@@ -352,6 +329,9 @@ hold off
 Store.minmax_err_x = min(Store.max_err_x);
 Store.minmax_err_y = min(Store.max_err_y);
 
+%Store.minmax_err_x = min(Store.mean_err_x);
+%Store.minmax_err_y = min(Store.mean_err_y);
+
 minmax_err_x_index = find(Store.max_err_x == Store.minmax_err_x);
 minmax_err_y_index = find(Store.max_err_y == Store.minmax_err_y);
 if minmax_err_x_index == minmax_err_y_index
@@ -376,9 +356,14 @@ Sensor = Store.Sensors(Sensor.Num);
 Sensor.MaxErr_x = Store.max_err_x(Sensor.Num - min_SensorNum + 1);
 Sensor.MaxErr_y = Store.max_err_y(Sensor.Num - min_SensorNum + 1);
 
-disp(['The chosen number of sensor is: ', num2str(Sensor.Num)]);
+disp(' ')
+disp('Oh, someone has called this algorithm. Ah, we have a new room!')
+disp(['Let''' 's look for the best number of sensors to deploy there...'])
+disp(['The chosen number of sensors is: ', num2str(Sensor.Num)]);
 disp(['The maximum error on the x position is: ', num2str(Sensor.MaxErr_x, 3), ' m']);
 disp(['The maximum error on the y position is: ', num2str(Sensor.MaxErr_y, 3), ' m']);
+disp(['Done. Never call me again. I''' 'm so tired...'])
+disp(' ')
 
 % Cleaning fields...
 Sensor.Detect = zeros(Sensor.Num,1);
@@ -387,33 +372,33 @@ Sensor.PosMeas = zeros(Sensor.Num, 2);
 % Plot the sensors inside the room
 distributeSensorsOnPerimeter(Sensor.Num, Room.Width, Room.Height, true);
 
-% % Sensors with used positions plot 
-% figure;
-% axis equal;
-% axis([-0.2*Room.Width 1.2*Room.Width -0.2*Room.Height 1.2*Room.Height])
-% box on
-% xlabel('x','FontSize',16)
-% ylabel('y','FontSize',16)
-% title('Sensors and Used Positions','FontSize',14)
-% hold on;
-% 
-% rectangle('Position', [0, 0, Room.Width, Room.Height], 'LineWidth', 2);
-% 
-% for k=1:length(SetUp.Time)-1
-% 
-%     Env.RefPosition = Env.Positions(k,:);
-%     plot(Env.RefPosition(1), Env.RefPosition(2), 'go', 'MarkerSize', 10, 'MarkerFaceColor', 'b');
-% 
-%     for i = 1:Sensor.Num 
-%             plot(Sensor.Position(i,1), Sensor.Position(i,2), 'ro', 'MarkerSize', 10, 'MarkerFaceColor', 'r');
-%             text(Sensor.Position(i,1), Sensor.Position(i,2), num2str(i), 'HorizontalAlignment', 'center');
-%             if (sqrt(sum((Sensor.Position(i,:) - Env.RefPosition).^2)) <= Sensor.Range)
-%                 % rectangle('Position', [Sensor.Position(i,1) - Sensor.Range, Sensor.Position(i,2) - Sensor.Range, ...
-%                 %                        Sensor.Range * 2, Sensor.Range * 2], ...
-%                 %          'Curvature',[1, 1], 'LineStyle','--');
-%                 plot([Sensor.Position(i,1), Env.RefPosition(1)], [Sensor.Position(i,2), Env.RefPosition(2)], 'LineStyle','-.');
-%             end
-%     end
-% end
-% hold off
+% Sensors with used positions plot 
+figure;
+axis equal;
+axis([-0.2*Room.Width 1.2*Room.Width -0.2*Room.Height 1.2*Room.Height])
+box on
+xlabel('x','FontSize',16)
+ylabel('y','FontSize',16)
+title('Sensors and Used Positions','FontSize',14)
+hold on;
+
+rectangle('Position', [0, 0, Room.Width, Room.Height], 'LineWidth', 2);
+
+for k=1:gridnum^2
+
+    Env.RefPosition = Env.Positions(k,:);
+    plot(Env.RefPosition(1), Env.RefPosition(2), 'go', 'MarkerSize', 10, 'MarkerFaceColor', 'b');
+        
+    for i = 1:Sensor.Num 
+            plot(Sensor.Position(i,1), Sensor.Position(i,2), 'ro', 'MarkerSize', 10, 'MarkerFaceColor', 'r');
+            text(Sensor.Position(i,1), Sensor.Position(i,2), num2str(i), 'HorizontalAlignment', 'center');
+            if (sqrt(sum((Sensor.Position(i,:) - Env.RefPosition).^2)) <= Sensor.Range)
+                % rectangle('Position', [Sensor.Position(i,1) - Sensor.Range, Sensor.Position(i,2) - Sensor.Range, ...
+                %                        Sensor.Range * 2, Sensor.Range * 2], ...
+                %          'Curvature',[1, 1], 'LineStyle','--');
+                plot([Sensor.Position(i,1), Env.RefPosition(1)], [Sensor.Position(i,2), Env.RefPosition(2)], 'LineStyle','-.');
+            end
+    end
+end
+hold off
 end

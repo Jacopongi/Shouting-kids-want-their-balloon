@@ -6,6 +6,7 @@ right =  (px >= 0.9*Room.Width);
 bottom = (py <= 0.1*Room.Height);
 left =   (px <= 0.1*Room.Width);
 
+
 outside = top || right || bottom || left;
 inside = ~outside;
 

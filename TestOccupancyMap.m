@@ -1,7 +1,6 @@
 function [nextPos, params] = TestOccupancyMap(KidArrSFM, Room, params)
-% Function that guides the robot flock to the still unexplored areas
+% Summary: function that guides the robot flock to the still unexplored areas
 % How could this work with sensors in a real system??
-
 
 % mapSize = 10*[Room.Width, Room.Height];
 % 
@@ -25,7 +24,7 @@ for i = 1:KidArrSFM.N
 end
 
 % Display the updated occupancy map
-figure(11)
+figure(101)
 imagesc(params.occupancyMap);
 set(gca, 'YDir', 'normal'); % Ensure the y-axis rises from bottom to top
 title("Occupancy Map")
@@ -59,7 +58,7 @@ title("Occupancy Map")
 %     end
 % end
 %
-% figure(112)
+% figure
 % imagesc(densityMap);
 % set(gca, 'YDir', 'normal'); % Ensure the y-axis rises from bottom to top
 % title("Density map of visited positions")
@@ -215,6 +214,9 @@ else
     weight = weight_size .* weight_dist;
     [~,idx] = min(weight);
     nextPos = candidates(idx,:);
+
+    disp(['Now, we want to go to [' num2str(nextPos(1)) ' ' num2str(nextPos(2)) ']!'])
+
 end
 
 end
