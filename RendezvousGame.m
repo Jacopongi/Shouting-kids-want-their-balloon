@@ -42,7 +42,7 @@ stop = 0;
 attempt = 0;
 
 % Plot positions
-figure
+figure(7777)
 hold on;
 % Plot the target 
 hTarget = plot(targetPoint(1), targetPoint(2), 'rx', 'MarkerSize', 15, 'LineWidth', 2);

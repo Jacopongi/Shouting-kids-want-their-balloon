@@ -43,7 +43,7 @@ Room.Width = MaxNum * 1.5;  % [m]
 Room.Height = MaxNum ;      % [m]  
 
 % Secret parameters that make the world correctly functioning
-params.t = 0.5;              % step size   
+params.t = 0.5;              % step size          
 params.plotTrajEst = 1;      % if 0 plot actual position
 params.NumSFMExec = 0;
 params.flagForce = 1;        % Activate/deactivate repulsive force of non-targeted balloons
@@ -125,7 +125,7 @@ KidArray.EstimatedPos = EstimatePosition(KidArray, Sensor, Room, params.text);
 KidArray.EstimatedPosNC = EstimatePositionNoCons(KidArray, Sensor, Room);
 
 disp(' ')
-disp(['BALLOONS''' ' POSITION ESTIMATION TEST'])
+disp(["BALLOONS' POSITION ESTIMATION TEST"])
 BalloonArray.EstimatedPos = EstimatePosition(BalloonArray, Sensor, Room, params.text);
 BalloonArray.EstimatedPosNC = EstimatePositionNoCons(BalloonArray, Sensor, Room);
 
@@ -144,7 +144,7 @@ disp('Starting a bigger test...')
 Test = TestEstimatePosition(Sensor, Room, GridDim);
 Test = TestEstimatePositionNoCons(Sensor, Room, Test, GridDim);
 TestEstimateComparison(Test)
-disp(['Done. You don''' 'want me to redo it, do you? Plese no, no...'])
+disp(["Done. You don't want me to redo it, do you? Please no, no..."])
 disp(' ')
 
 %% Simulation settings
@@ -230,19 +230,19 @@ PlotMetrics(KidArrSFM, KidArray);
 % and the different distributions of kids and balloons.
 
 fprintf("\n");
-disp("After all this work, some games to relax!?")
+disp("After all this work, how about some games to relax!?")
 disp("Yes, we know this is the most relevant part of the project.")
 
 prompt = "Do you even want more? [Y/N]: ";
 txt = input(prompt,"s");
 if txt == 'Y'
-    disp("Make sure to take a last look at the previous plots!")
-    disp("They will be deleted when you continue to play")
-    prompt = "Are you sure you want to continue? [Y/N]: ";
-    txt1 = input(prompt,"s");
-    if txt1 == 'Y'
+    %disp("Make sure to take a last look at the previous plots!")
+    %disp("They will be deleted when you continue to play")
+    %prompt = "Are you sure you want to continue? [Y/N]: ";
+    %txt1 = input(prompt,"s");
+    %if txt1 == 'Y'
        
-        close all
+        %close all
     
         % Number of Kids
         numKid = 5;
@@ -262,7 +262,7 @@ if txt == 'Y'
         %                 [5] -> Block-Triangle distribution
         
         distrPattern = 4;
-        [KidArray, BalloonArray, params] = distributeKidBalloon(numKid, numBal, Room, distrPattern, params);
+        [KidArray, BalloonArray, params] = distributeKidBalloonForFlocking(numKid, numBal, Room, distrPattern, params);
         
         % To enable Flocking behavior set FlockingFlag = 1
         % if FlockingFlag = 0, only collision avoidance is enabled. 
@@ -286,12 +286,13 @@ if txt == 'Y'
         %% THAT'S ALL FOLKS!
         disp(' ')
         disp(['THAT''' 'S ALL FOLKS!'])
-    else
-        disp(' ')
-        disp("Sad to see you leave already :(")
-        disp("Thank you for playing nevertheless.")
-        disp("Until next time!!")
-    end
+    %else
+        %disp(' ')
+        %disp("Sad to see you leave already :(")
+        %disp("Thank you for playing nevertheless.")
+        %disp("Until next time!!")
+    %end
+
 
 elseif 'N'
     disp(' ')
@@ -299,3 +300,4 @@ elseif 'N'
     disp("Thank you for playing nevertheless.")
     disp("Until next time!!")
 end
+
