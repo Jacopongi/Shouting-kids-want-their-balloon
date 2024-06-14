@@ -301,7 +301,7 @@ if callerFunction == "SFM2"
 
                     direc = normalize(prevDes-flockPos, 'norm', 2);
                     ang2hor = atan2(direc(:, 2), direc(:, 1));
-                    angles = linspace(-0.25*pi, 0.25*pi, 7);       
+                    angles = linspace(-0.25*pi, 0.25*pi, 6);   % index 1 is right-most point    
                     rot_mat = [cos(ang2hor), -sin(ang2hor); ...
                                sin(ang2hor),  cos(ang2hor)];
                     radius = Room.Width/6;  % radius/look-ahead
@@ -310,24 +310,59 @@ if callerFunction == "SFM2"
                         xb = radius*cos(angles);  
                         yb = radius*sin(angles);    
                         [xy] = rot_mat*[xb;yb]; % rotate into base frame
+
                         newDest = flockPos + [xy(1,:)', xy(2,:)'];
-                        for i = 1:7
-                            [is_inside,~] = isInside(newDest(i,1), newDest(i,2), Room);
-                            if ~is_inside
-                                if i<=3
-                                    % rotate to right by a little
-                                    angles = angles + 0.1*pi;
-                                else
-                                    % rotate to left
-                                    angles = angles - 0.1*pi;
-                                end
-                                break
-                            end
+                        
+                        [is_inside,~] = isInside(newDest(:,1), newDest(:,2), Room);
+                        if all(is_inside)
+                            % everything fine, exit while loop
                             choosePos = 0;
+                        else
+                            % =some are outside
+                            idx_out = find(is_inside==0);  % which ones?
+                            mag_rot = length(idx_out);  % how many?
+
+                            if all(idx_out <= 5)
+                                % points on right outside, rotate to left
+                                angles = angles + 0.1*mag_rot*pi;
+                            elseif all(idx_out >= 1)
+                                % points on left outside, rotate to right
+                                angles = angles - 0.1*mag_rot*pi;
+                            else
+                                % either all out, or some on both sides
+                                % (rare), rotate by 90°
+                                angles = angles + pi/2;
+                            end                            
                         end
                     end
-                    
-                    newDest = newDest(randi(7),:); % randomly choose one of the 7 new directions
+                        
+                    newDest = newDest(randi(6),:); % randomly choose one of the 6 new directions
+                        
+
+
+
+
+
+                    %     newDest = flockPos + [xy(1,:)', xy(2,:)'];
+                    %     for i = 1:7
+                    %         [is_inside,~] = isInside(newDest(i,1), newDest(i,2), Room);
+                    %         if ~is_inside
+                    %             if i<3
+                    %                 % rotate to right by a little
+                    %                 angles = angles + 0.1*pi;
+                    %             elseif i>5
+                    %                 % rotate to left
+                    %                 angles = angles - 0.1*pi;
+                    %             end
+                    %             break
+                    %         end
+                    %         if i == 7
+                    %             choosePos = 0;
+                    %         end
+                    %     end
+                    % end
+                    % 
+                    % newDest = newDest(randi(7),:); % randomly choose one of the 7 new directions
 
     
                     % check if new point lays within room's borders
@@ -357,7 +392,7 @@ if callerFunction == "SFM2"
                     %     end
                     % end
 
-                    newDest
+                    
                 end
 
                 

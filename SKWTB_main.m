@@ -20,9 +20,9 @@ disp(' ')
 
 
 % Number of Kids 
-numKid = 8;        
+numKid = 4;        
 % Number of Balloon
-numBal = 8;
+numBal = 4;
 
 
 % NOTE1: choose an equal number of kids and balloons!
@@ -43,8 +43,8 @@ Room.Width = MaxNum * 1.5;  % [m]
 Room.Height = MaxNum ;      % [m]  
 
 % Secret parameters that make the world correctly functioning
+params.t = 0.5;              % step size   
 params.plotTrajEst = 1;      % if 0 plot actual position
-
 params.NumSFMExec = 0;
 params.flagForce = 1;        % Activate/deactivate repulsive force of non-targeted balloons
 params.print_flag = 1;
@@ -68,8 +68,8 @@ run = 1;
 % 
 % Case = [4]    Subcase = [1]   --> Exploration with occupancy map   
 
-params.Case = 4;
-params.Subcase = 1;
+params.Case = 3;
+params.Subcase = 2;
 
 %% Kids and balloons positioning inside the room
 
@@ -78,7 +78,7 @@ params.Subcase = 1;
 %                                      [3] -> Grid-Arc distribution 
 %                                      [4] -> Circular distribution
 %                                      [5] -> Block-Triangle distribution
-distrPattern = 1;
+distrPattern = 3;
 [KidArray, BalloonArray, params] = distributeKidBalloon(numKid, numBal, Room, distrPattern, params);
 
 disp('Have you seen that little kid right in the corner?')
@@ -221,10 +221,7 @@ end
 
 PlotMetrics(KidArrSFM, KidArray);
 
-%% PLAYROOM 
-
-% After all this work, some games to relax. 
-% Yes, we know this is the most relevant part of the project.
+%% %%%%%%%% PLAYROOM %%%%%%%%% %%
 
 %% ***** FLOCKING GAME ***** %%
 
@@ -232,45 +229,73 @@ PlotMetrics(KidArrSFM, KidArray);
 % NOTE: It is allowed and highly recommended to play with the numbers 
 % and the different distributions of kids and balloons.
 
-% Number of Kids
-numKid = 5;
-% Number of Balloon
-numBal = 5;
+fprintf("\n");
+disp("After all this work, some games to relax!?")
+disp("Yes, we know this is the most relevant part of the project.")
 
-% Room features
-MaxNum = numKid + numBal;
-Room.Width = MaxNum * 1.5;  % [m]                     
-Room.Height = MaxNum ;      % [m] 
+prompt = "Do you even want more? [Y/N]: ";
+txt = input(prompt,"s");
+if txt == 'Y'
+    disp("Make sure to take a last look at the previous plots!")
+    disp("They will be deleted when you continue to play")
+    prompt = "Are you sure you want to continue? [Y/N]: ";
+    txt1 = input(prompt,"s");
+    if txt1 == 'Y'
+       
+        close all
+    
+        % Number of Kids
+        numKid = 5;
+        % Number of Balloon
+        numBal = 5;
+        
+        % Room features
+        MaxNum = numKid + numBal;
+        Room.Width = MaxNum * 1.5;  % [m]                     
+        Room.Height = MaxNum ;      % [m] 
+        
+        % Choose your favorite distribution
+        % distrPattern =  [1] -> Random distribution
+        %                 [2] -> Grid-Grid distribution
+        %                 [3] -> Grid-Arc distribution 
+        %                 [4] -> Circular distribution
+        %                 [5] -> Block-Triangle distribution
+        
+        distrPattern = 4;
+        [KidArray, BalloonArray, params] = distributeKidBalloon(numKid, numBal, Room, distrPattern, params);
+        
+        % To enable Flocking behavior set FlockingFlag = 1
+        % if FlockingFlag = 0, only collision avoidance is enabled. 
+        FlockingFlag = 1;
+        % To create the video of the animation, put VideoFlag = 1
+        VideoFlag = 0;
+        
+        [KidArray, BalloonArray] = Flocking(KidArray,BalloonArray,Room, FlockingFlag, VideoFlag);
+        
+        % NOTE: There is a maximum number of iterations because also patience has limits.
+        
+        
+        %% ***** RENDEZVOUS GAME ***** %%
+        
+        % Here you can try how rendezvous consensus algorithm works.
+        % After the first run, you can pick your favorite position inside the room...
+        % ... and robots will converge there!
+        
+        RendezvousGame
+        
+        %% THAT'S ALL FOLKS!
+        disp(' ')
+        disp(['THAT''' 'S ALL FOLKS!'])
+    else
+        disp(' ')
+        disp("Sad to see you leave already :(")
+        disp("Thank you for playing nevertheless.")
+        disp("Until next time!!")
+    end
 
-% Choose your favorite distribution
-% distrPattern =  [1] -> Random distribution
-%                 [2] -> Grid-Grid distribution
-%                 [3] -> Grid-Arc distribution 
-%                 [4] -> Circular distribution
-%                 [5] -> Block-Triangle distribution
-
-distrPattern = 4;
-[KidArray, BalloonArray, params] = distributeKidBalloon(numKid, numBal, Room, distrPattern, params);
-
-% To enable Flocking behavior set FlockingFlag = 1
-% if FlockingFlag = 0, only collision avoidance is enabled. 
-FlockingFlag = 1;
-% To create the video of the animation, put VideoFlag = 1
-VideoFlag = 0;
-
-[KidArray, BalloonArray] = Flocking(KidArray,BalloonArray,Room, FlockingFlag, VideoFlag);
-
-% NOTE: There is a maximum number of iterations because also patience has limits.
-
-
-%% ***** RENDEZVOUS GAME ***** %%
-
-% Here you can try how rendezvous consensus algorithm works.
-% After the first run, you can pick your favorite position inside the room...
-% ... and robots will converge there!
-
-RendezvousGame
-
-%% THAT'S ALL FOLKS!
-disp(' ')
-disp(['THAT''' 'S ALL FOLKS!'])
+elseif 'N'
+    disp(' ')
+    disp("Sad to see you leave already :(")
+    disp("Thank you for playing nevertheless.")
+    disp("Until next time!!")
+end
