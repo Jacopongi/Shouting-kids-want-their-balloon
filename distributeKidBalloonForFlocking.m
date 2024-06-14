@@ -295,7 +295,7 @@ KidArray.DesiredVel = rand(numKid,1)*(maxVel-minVel) + minVel;
 KidArray.ActualVel = zeros(numKid,2);
 
 % Figure 
-figure
+figure(10101)
 axis equal
 axis([-0.05*Room.Width 1.05*Room.Width -0.05*Room.Height 1.05*Room.Height])
 rectangle('Position', [0 0 Room.Width Room.Height])
