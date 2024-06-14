@@ -125,7 +125,7 @@ KidArray.EstimatedPos = EstimatePosition(KidArray, Sensor, Room, params.text);
 KidArray.EstimatedPosNC = EstimatePositionNoCons(KidArray, Sensor, Room);
 
 disp(' ')
-disp(['BALLOONS''' ' POSITION ESTIMATION TEST'])
+disp(["BALLOONS' POSITION ESTIMATION TEST"])
 BalloonArray.EstimatedPos = EstimatePosition(BalloonArray, Sensor, Room, params.text);
 BalloonArray.EstimatedPosNC = EstimatePositionNoCons(BalloonArray, Sensor, Room);
 
@@ -144,7 +144,7 @@ disp('Starting a bigger test...')
 Test = TestEstimatePosition(Sensor, Room, GridDim);
 Test = TestEstimatePositionNoCons(Sensor, Room, Test, GridDim);
 TestEstimateComparison(Test)
-disp(['Done. You don''' 'want me to redo it, do you? Plese no, no...'])
+disp(["Done. You don't want me to redo it, do you? Please no, no..."])
 disp(' ')
 
 %% Simulation settings
@@ -273,4 +273,4 @@ RendezvousGame
 
 %% THAT'S ALL FOLKS!
 disp(' ')
-disp(['THAT''' 'S ALL FOLKS!'])
+disp(["THAT'S ALL FOLKS!"])
