@@ -43,8 +43,8 @@ Room.Width = MaxNum * 1.5;  % [m]
 Room.Height = MaxNum ;      % [m]  
 
 % Secret parameters that make the world correctly functioning
+params.t = 0.5;              % step size          
 params.plotTrajEst = 1;      % if 0 plot actual position
-
 params.NumSFMExec = 0;
 params.flagForce = 1;        % Activate/deactivate repulsive force of non-targeted balloons
 params.print_flag = 1;
