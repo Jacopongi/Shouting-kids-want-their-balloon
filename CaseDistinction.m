@@ -305,7 +305,9 @@ if callerFunction == "SFM2"
                     rot_mat = [cos(ang2hor), -sin(ang2hor); ...
                                sin(ang2hor),  cos(ang2hor)];
                     radius = Room.Width/6;  % radius/look-ahead
-                    choosePos = 1;
+                    
+		    %{
+      		    choosePos = 1;
                     while choosePos                        
                         xb = radius*cos(angles);  
                         yb = radius*sin(angles);    
@@ -337,8 +339,29 @@ if callerFunction == "SFM2"
                     end
                         
                     newDest = newDest(randi(6),:); % randomly choose one of the 6 new directions
-                        
+                    %}    
 
+		    choosePos = 1;
+                    while choosePos                        
+                        xb = radius*cos(angles);  
+                        yb = radius*sin(angles);    
+                        [xy] = rot_mat*[xb;yb]; % rotate into base frame
+
+                        newDest = flockPos + [xy(1,:)', xy(2,:)'];
+                        
+                        [is_inside,~] = isInside(newDest(:,1), newDest(:,2), Room);
+                        if ~any(is_inside)
+                            % not one is inside, rotate and repeat. Random
+                            % rotation either 3 slots to left or right
+                            angles = angles + 0.1 * (randi(7)-4) * pi;
+                        else
+                            % at least one is inside
+                            % choose randomly between those that are
+                            newDest = newDest(randsample(find(is_inside),1), :); 
+                            choosePos = 0;                          
+                        end
+                    end
+                       
 
 
 
