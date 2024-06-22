@@ -357,7 +357,16 @@ if callerFunction == "SFM2"
                         else
                             % at least one is inside
                             % choose randomly between those that are
-                            newDest = newDest(randsample(find(is_inside),1), :); 
+                            idx_inside = find(is_inside);
+                            if length(idx_inside) > 1
+                                newDest = newDest(randsample(idx_inside,1), :);
+                            else
+                                % only one is inside, can't use randsample
+                                % because if give a scalar it randomly
+                                % chooses a value [0,idx_inside] which
+                                % could be a position that is outside
+                                newDest = newDest(idx_inside, :);
+                            end
                             choosePos = 0;                          
                         end
                     end
