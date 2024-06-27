@@ -11,7 +11,6 @@ FOLDER DESCRIPTION:
 - warehouse -> multiple runs matrices and excel files storage
 
 FILE DESCRIPTION:
-
 - CaseDistinction 	          -> choose btw different cases
 - ChooseSensorNumber 	          -> consensus algorithm for sensors distribution
 - distributeKidBalloon 	          -> initial positions kids and balloons
