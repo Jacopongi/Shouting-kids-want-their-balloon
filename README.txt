@@ -7,8 +7,10 @@ Professor: Daniele Fontanelli
 Course Year: 2023-2024
 
 FOLDER DESCRIPTION:
-- figures   -> video and .jpeg storage
-- warehouse -> multiple runs matrices and excel files storage
+- videos			  -> videos of all cases with actual positions
+- figures report  		  -> .jpeg storage of figures shown in report
+- warehouse 			  -> multiple runs matrices and excel files storage
+- museum archive 		  -> old figures/videos
 
 FILE DESCRIPTION:
 - CaseDistinction 	          -> choose btw different cases
